@@ -17,6 +17,11 @@
 - **Установка:** fastboot, TWRP, OrangeFox, adb sideload, DSU (попробовать без стирания данных).
 - **Всё собирается на GitHub** (GitHub Actions).
 
+## Проверка в эмуляторе
+Снято автоматически на GitHub (плагин android-emulator-qa): мастер первого включения и Corax Центр.
+
+![Проверка в эмуляторе](docs/img/emulator-qa.png)
+
 ## Логотип
 Выбран вариант **B (shard)**. Остальные варианты оставлены для истории.
 ![Варианты логотипа](docs/img/logo-variants.png)
