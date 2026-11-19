@@ -1,0 +1,42 @@
+#!/sbin/sh
+# Установщик CoraxOS для TWRP, OrangeFox и adb sideload.
+# Пишет system.img.xz из архива в раздел system текущего слота
+# (обычный раздел или логический внутри super).
+OUTFD=/proc/self/fd/$2
+ZIP=$3
+
+ui_print() { echo "ui_print $1" > "$OUTFD"; echo "ui_print" > "$OUTFD"; }
+abort() { ui_print "ОШИБКА: $1"; exit 1; }
+
+ui_print " "
+ui_print "  CoraxOS — установка"
+ui_print " "
+
+SLOT=$(getprop ro.boot.slot_suffix 2>/dev/null)
+TARGET=${CORAX_TARGET:-}  # для тестов на ПК
+[ -n "$TARGET" ] || for dev in /dev/block/mapper/system$SLOT /dev/block/mapper/system /dev/block/by-name/system$SLOT /dev/block/by-name/system; do
+  if [ -e "$dev" ]; then TARGET=$dev; break; fi
+done
+[ -n "$TARGET" ] || abort "раздел system не найден"
+ui_print "Раздел: $TARGET"
+
+command -v xzcat >/dev/null 2>&1 || abort "в recovery нет xzcat — используйте способ через fastbootd"
+NEED=$(unzip -p "$ZIP" system.img.size 2>/dev/null)
+HAVE=$(blockdev --getsize64 "$TARGET" 2>/dev/null || stat -c %s "$TARGET")
+[ -n "$NEED" ] || abort "в архиве нет system.img.size"
+ui_print "Образ: $NEED байт, раздел: $HAVE байт"
+if [ "$HAVE" -lt "$NEED" ]; then
+  if command -v lptools >/dev/null 2>&1 && echo "$TARGET" | grep -q mapper; then
+    ui_print "Увеличиваю логический раздел…"
+    lptools resize "system$SLOT" "$NEED" || abort "не удалось увеличить раздел"
+  else
+    abort "раздел меньше образа — освободите место в super или ставьте через fastbootd (flash.sh)"
+  fi
+fi
+
+blockdev --setrw "$TARGET" 2>/dev/null
+ui_print "Записываю систему (несколько минут)…"
+unzip -p "$ZIP" system.img.xz | xzcat > "$TARGET" || abort "запись не удалась"
+sync
+ui_print "Готово. Сделайте Format Data и перезагрузитесь."
+exit 0
