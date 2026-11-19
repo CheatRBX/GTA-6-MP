@@ -36,7 +36,8 @@ object DeviceFactsReader {
 
     private fun exists(path: String) = runCatching { File(path).exists() }.getOrDefault(false)
 
-    private fun prop(name: String): String = runCatching {
+    /** Системное свойство через getprop; пусто, если не задано или недоступно приложению. */
+    fun prop(name: String): String = runCatching {
         val p = ProcessBuilder("getprop", name).redirectErrorStream(true).start()
         p.inputStream.bufferedReader().use { it.readText() }.trim().also { p.waitFor() }
     }.getOrDefault("")

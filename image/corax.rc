@@ -1,0 +1,27 @@
+# Corax OS — безопасный запуск (шаг 3.0 плана).
+#
+# Считаем загрузки, которые не дошли до конца. Две неудачные подряд — включаем безопасный режим:
+# дополнения, драйверы и модули Corax не подключаются (их init-скрипты проверяют sys.corax.safemode=0).
+# Режим «липкий»: остаётся включённым, пока пользователь не выключит его в Corax Центре.
+#
+# Только штатные команды init, без своих правил SELinux: ошибка в правилах сама может дать бутлуп.
+# Значения по умолчанию (0) лежат в /system/build.prop.
+
+# Постоянные свойства уже загружены к zygote-start. Условие проверяется в момент события,
+# поэтому за одну загрузку срабатывает ровно одно из двух действий.
+on zygote-start && property:persist.corax.boot_attempts=0
+    setprop persist.corax.boot_attempts 1
+
+on zygote-start && property:persist.corax.boot_attempts=1
+    setprop persist.corax.boot_attempts 2
+
+# Дошли до двух незавершённых загрузок — безопасный режим (запоминается).
+on property:persist.corax.boot_attempts=2
+    setprop persist.corax.safemode 1
+
+on property:persist.corax.safemode=1
+    setprop sys.corax.safemode 1
+
+# Система загрузилась до конца — счётчик в ноль.
+on property:sys.boot_completed=1
+    setprop persist.corax.boot_attempts 0

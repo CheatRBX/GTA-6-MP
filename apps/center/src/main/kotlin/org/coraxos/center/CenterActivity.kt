@@ -52,7 +52,8 @@ class CenterActivity : ComponentActivity() {
             )
         }
         val model = SetupModel(DeviceFactsReader.read(), ChoiceStore.load(this))
-        setContent { CenterScreen(model, onRestartWizard = ::restartWizard) }
+        val safeMode = DeviceFactsReader.prop("sys.corax.safemode") == "1"
+        setContent { CenterScreen(model, safeMode, onRestartWizard = ::restartWizard) }
     }
 
     /** «Пройти мастер заново»: включаем экран приветствия (он отключает себя в конце) и открываем его. */
@@ -66,7 +67,7 @@ class CenterActivity : ComponentActivity() {
 private enum class Section(val title: String) { ROOT("Root"), GOOGLE("Сервисы Google"), KITS("Наборы"), DEVICE("Отчёт об устройстве") }
 
 @Composable
-private fun CenterScreen(model: SetupModel, onRestartWizard: () -> Unit) {
+private fun CenterScreen(model: SetupModel, safeMode: Boolean, onRestartWizard: () -> Unit) {
     val context = LocalContext.current
     var open by remember { mutableStateOf<Section?>(null) }
     BackHandler(enabled = open != null) { open = null }
@@ -76,6 +77,7 @@ private fun CenterScreen(model: SetupModel, onRestartWizard: () -> Unit) {
                 val section = open
                 if (section == null) {
                     StepHeader(null, "Corax Центр", null)
+                    if (safeMode) SafeModeBanner()
                     DeviceChip(describe(model.facts))
                     val s = model.selection
                     Group {
@@ -155,5 +157,20 @@ private fun DeviceReportView(model: SetupModel) {
             Text(k, color = Corax.muted, fontSize = 13.sp, modifier = Modifier.weight(1f))
             Text(v, color = Corax.fg, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
+    }
+}
+
+/** Плашка безопасного запуска (image/corax.rc): две загрузки подряд не дошли до конца. */
+@Composable
+private fun SafeModeBanner() {
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Corax.warn.copy(alpha = .12f)).padding(14.dp),
+    ) {
+        Text("Безопасный режим", color = Corax.warn, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            "Две загрузки подряд не дошли до конца, поэтому дополнения, драйверы и модули Corax отключены. " +
+                "Телефон работает, ваши данные на месте.",
+            color = Corax.fg, fontSize = 13.sp,
+        )
     }
 }

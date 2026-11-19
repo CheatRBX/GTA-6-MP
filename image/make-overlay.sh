@@ -24,9 +24,10 @@ done
 echo "Загрузочная анимация: $anim"
 
 rm -rf "$ov"
-mkdir -p "$ov$(dirname "$anim")" "$ov/system/priv-app/CoraxCenter" "$ov/system/etc"
+mkdir -p "$ov$(dirname "$anim")" "$ov/system/priv-app/CoraxCenter" "$ov/system/etc/init"
 cp "$anim_src" "$ov$anim"
 cp "$apk" "$ov/system/priv-app/CoraxCenter/CoraxCenter.apk"
+cp "$here/image/corax.rc" "$ov/system/etc/init/corax.rc"   # безопасный запуск
 printf 'name=%s\nversion=%s\nbuild=%s\ncommit=%s\n' "$name" "$version" "${GITHUB_RUN_ID:-local}" "${GITHUB_SHA:-local}" \
   > "$ov/system/etc/corax-release"
 
@@ -38,6 +39,10 @@ debugfs -R "dump /system/build.prop $ov/system/build.prop" "$base" 2>/dev/null
   echo "ro.corax.name=$name"
   echo "ro.corax.version=$version"
   echo "ro.corax.build=$stamp.${GITHUB_RUN_NUMBER:-0}"
+  echo "# Безопасный запуск (image/corax.rc): значения по умолчанию"
+  echo "persist.corax.boot_attempts=0"
+  echo "persist.corax.safemode=0"
+  echo "sys.corax.safemode=0"
 } >> "$ov/system/build.prop"
 
 if [[ -n $expected ]]; then

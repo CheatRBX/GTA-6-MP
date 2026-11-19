@@ -16,6 +16,11 @@ echo "Android: $(p ro.build.version.release)  сборка: $(p ro.build.display
 echo "ro.corax.name=$(p ro.corax.name) ro.corax.version=$(p ro.corax.version) ro.corax.build=$(p ro.corax.build)" | tee -a "$OUT/gsi-system.txt"
 adb shell cat /system/etc/corax-release | tee -a "$OUT/gsi-system.txt"
 
+echo "== Безопасный запуск: после нормальной загрузки счётчик 0 и режим выключен"
+echo "boot_attempts=$(p persist.corax.boot_attempts) safemode=$(p sys.corax.safemode)" | tee -a "$OUT/gsi-system.txt"
+[[ $(p persist.corax.boot_attempts) == 0 ]] || fail "счётчик загрузок не сброшен (persist.corax.boot_attempts=$(p persist.corax.boot_attempts))"
+[[ $(p sys.corax.safemode) == 0 ]] || fail "безопасный режим включился без причины"
+
 echo "== Corax Центр — системное приложение из образа"
 path=$(adb shell pm path org.coraxos.center | tr -d '\r')
 echo "$path"
