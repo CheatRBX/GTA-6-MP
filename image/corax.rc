@@ -7,23 +7,25 @@
 # Только штатные команды init, без своих правил SELinux: ошибка в правилах сама может дать бутлуп.
 # Значения по умолчанию (0) лежат в /system/build.prop.
 #
-# Счётчик срабатывает как можно раньше — сразу после загрузки постоянных свойств, до zygote-start
-# и до действий любых дополнений. Иначе перезагрузка из «ломающего» дополнения в том же событии
-# могла бы оборвать очередь раньше, чем счётчик увеличится (это поймал тест в эмуляторе).
-
-# init.rc загружает постоянные свойства в этом же событии раньше нас, поэтому значение уже актуальное.
-on load_persist_props_action
+# Счётчик срабатывает, как только постоянные свойства ТОЧНО загружены: Android загружает их
+# асинхронно и сообщает об этом свойством ro.persistent_properties.ready=true. (Раньше счётчик
+# читал значение в событии load_persist_props_action — до окончания загрузки — и всегда видел 0;
+# это поймал тест с настоящим бутлупом в эмуляторе.) Это всё ещё раньше zygote-start и дополнений.
+on property:ro.persistent_properties.ready=true
     setprop sys.corax.attempts_seen ${persist.corax.boot_attempts}
 
 on property:sys.corax.attempts_seen=0
     setprop persist.corax.boot_attempts 1
+    setprop sys.corax.counted 1
 
 on property:sys.corax.attempts_seen=1
     setprop persist.corax.boot_attempts 2
+    setprop sys.corax.counted 1
 
 # Две незавершённые загрузки позади — эта идёт в безопасном режиме (запоминается).
 on property:sys.corax.attempts_seen=2
     setprop persist.corax.safemode 1
+    setprop sys.corax.counted 1
 
 on property:persist.corax.safemode=1
     setprop sys.corax.safemode 1
