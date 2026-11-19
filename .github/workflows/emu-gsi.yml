@@ -65,6 +65,8 @@ jobs:
         run: |
           bash image/make-overlay.sh work/base.img overlay \
             apps/center/build/outputs/apk/debug/center-debug.apk brand/out/bootanimation.zip expected.txt
+          # GSI от Google — user-сборка с выключенным ADB; для проверки включаем его (только здесь).
+          bash qa/emu-gsi/test-props.sh work/base.img overlay
           bash image/repack.sh work/base.img overlay work/system.img
           rm work/base.img
 
