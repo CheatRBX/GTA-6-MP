@@ -1,18 +1,18 @@
 name: image
 
-# Шаг 0.1 плана: скачать готовый LineageOS 24 GSI, положить в него наш файл-метку,
-# упаковать обратно и доказать, что изменилось ровно то, что мы положили.
-# Режим full (с приложениями, сервисом и брендом) добавится в фазе 5.
+# Сборка GSI Corax OS: берём готовый LineageOS 24 GSI (image/base.json), кладём в него
+# загрузочную анимацию Corax, Corax Центр (системное приложение) и метки версии,
+# доказываем, что изменилось только наше, и выдаём образ + установщики.
 on:
   push:
-    paths: ["image/**", ".github/workflows/image.yml"]
+    paths: ["image/**", "installer/**", ".github/workflows/image.yml"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  repack:
+  gsi:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
@@ -20,16 +20,33 @@ jobs:
 
       - name: Free disk space
         run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
-            /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost
           df -h /
 
       - name: Install tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq e2fsprogs android-sdk-libsparse-utils xz-utils attr jq
+          sudo apt-get install -y -qq e2fsprogs android-sdk-libsparse-utils xz-utils attr jq libcairo2 zip
+          pip install pillow numpy cairosvg
 
+      # ---------- наши части ----------
+      - name: Boot animation
+        run: |
+          python3 brand/bootanim/build.py
+          python3 brand/bootanim/check.py brand/out/bootanimation.zip
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Corax Center APK
+        working-directory: apps
+        run: ./gradlew :center:assembleDebug --console=plain
+
+      # ---------- базовый образ ----------
       - name: Download base GSI
         env:
           GH_TOKEN: ${{ github.token }}
@@ -37,77 +54,81 @@ jobs:
           repo=$(jq -r .github_repo image/base.json)
           tag=$(jq -r .tag image/base.json)
           re=$(jq -r .asset_regex image/base.json)
-          sum_re=$(jq -r .checksums_asset_regex image/base.json)
           pinned=$(jq -r .sha256 image/base.json)
           gh api "repos/$repo/releases/tags/$tag" > release.json
-          echo "Файлы релиза:"; jq -r '.assets[] | "\(.name)\t\(.size)"' release.json
           url=$(jq -r --arg re "$re" '[.assets[] | select(.name | test($re))][0].browser_download_url' release.json)
           [ "$url" != "null" ] || { echo "Нет файла по шаблону $re"; exit 1; }
           name=$(basename "$url")
           mkdir -p work
           curl -fL --retry 3 -o "work/$name" "$url"
           actual=$(sha256sum "work/$name" | cut -d' ' -f1)
-          if [ -n "$pinned" ]; then
-            [ "$actual" = "$pinned" ] || { echo "SHA256 не совпал: $actual != $pinned"; exit 1; }
-          else
-            sum_url=$(jq -r --arg re "$sum_re" '[.assets[] | select(.name | test($re))][0].browser_download_url' release.json)
-            [ "$sum_url" != "null" ] || { echo "Нет файла контрольных сумм"; exit 1; }
-            curl -fL --retry 3 -o work/author-sums.txt "$sum_url"
-            echo "SHA256SUMS автора:"; cat work/author-sums.txt
-            if ! grep -qi "$actual" work/author-sums.txt; then
-              # Автор считает сумму распакованного .img (так написано в его инструкции).
-              case "$name" in
-                *.xz) raw_sum=$(xz -dc -T0 "work/$name" | sha256sum | cut -d' ' -f1) ;;
-                *.gz) raw_sum=$(gzip -dc "work/$name" | sha256sum | cut -d' ' -f1) ;;
-                *) raw_sum="" ;;
-              esac
-              echo "sha256 распакованного образа: $raw_sum"
-              [ -n "$raw_sum" ] && grep -qi "$raw_sum" work/author-sums.txt \
-                || { echo "Ни сумма архива, ни сумма образа не совпали с SHA256SUMS автора"; exit 1; }
-            fi
-          fi
+          [ "$actual" = "$pinned" ] || { echo "SHA256 не совпал: $actual != $pinned"; exit 1; }
           echo "BASE=work/$name" >> "$GITHUB_ENV"
-          {
-            echo "### Базовый GSI"
-            echo "- файл: \`$name\` ($repo, $tag)"
-            echo "- sha256: \`$actual\` (зафиксировать в image/base.json)"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "### Базовый GSI: \`$name\` (sha256 \`$actual\`)" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Overlay (marker)
+      - name: Unpack base
+        run: RAW_ONLY=1 bash image/repack.sh "$BASE" /dev/null work/base.img
+
+      # ---------- оверлей ----------
+      - name: Build overlay
         run: |
-          mkdir -p overlay/system/etc
-          printf 'CoraxOS marker\nrun=%s\ncommit=%s\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" > overlay/system/etc/corax-marker
-          echo ./system/etc/corax-marker > expected.txt
+          version=$(jq -r .version brand/brand.json)
+          name=$(jq -r .os_name brand/brand.json)
+          stamp=$(date -u +%Y%m%d)
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "STAMP=$stamp" >> "$GITHUB_ENV"
+
+          # Где лежит загрузочная анимация в этом GSI.
+          anim=/system/product/media/bootanimation.zip
+          for p in /system/product/media/bootanimation.zip /system/media/bootanimation.zip; do
+            if debugfs -R "stat $p" work/base.img 2>/dev/null | grep -q Inode; then anim=$p; break; fi
+          done
+          echo "Загрузочная анимация: $anim"
+
+          mkdir -p "overlay$(dirname "$anim")" overlay/system/priv-app/CoraxCenter overlay/system/etc
+          cp brand/out/bootanimation.zip "overlay$anim"
+          cp apps/center/build/outputs/apk/debug/center-debug.apk overlay/system/priv-app/CoraxCenter/CoraxCenter.apk
+          printf 'name=%s\nversion=%s\nbuild=%s\ncommit=%s\nbase=%s\n' \
+            "$name" "$version" "$GITHUB_RUN_ID" "$GITHUB_SHA" "$(jq -r .name image/base.json)" > overlay/system/etc/corax-release
+
+          # Метки версии в build.prop (сам файл заменяется целиком).
+          debugfs -R "dump /system/build.prop work/build.prop" work/base.img
+          {
+            echo ""
+            echo "# Corax OS"
+            echo "ro.corax.name=$name"
+            echo "ro.corax.version=$version"
+            echo "ro.corax.build=$stamp.$GITHUB_RUN_NUMBER"
+          } >> work/build.prop
+          cp work/build.prop overlay/system/build.prop
+
+          (cd overlay && find . -type f; find . -mindepth 1 -type d) | sort > expected.txt
+          cat expected.txt
 
       - name: Repack
         run: bash image/repack.sh "$BASE" overlay work/system.img
 
-      - name: Unpack original for comparison
-        run: RAW_ONLY=1 bash image/repack.sh "$BASE" overlay work/base.img
-
-      - name: Verify (only the marker changed)
+      - name: Verify (only our files changed)
         run: sudo bash image/verify.sh work/base.img work/system.img expected.txt
 
-      - name: Image info
+      # ---------- выпуск ----------
+      - name: Package
         run: |
-          dumpe2fs -h work/system.img 2>/dev/null | grep -E 'features|Block count|Block size|Free blocks'
-          debugfs -R 'cat /system/etc/corax-marker' work/system.img
-          ls -l work/
+          out=CoraxOS-$VERSION-test-$STAMP-arm64_bvN
+          mkdir -p dist
+          xz -T0 -6 -c work/system.img > "dist/$out.img.xz"
+          bash installer/build-zip.sh "dist/$out.img.xz" "dist/$out-installer.zip"
+          cp installer/flash.sh installer/flash.bat dist/
+          (cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS)
           {
-            echo "### Результат"
-            echo "- размер base: $(stat -c %s work/base.img) байт, новый: $(stat -c %s work/system.img) байт"
+            echo "### Corax OS $VERSION (тестовая сборка)"
+            echo '```'; cat dist/SHA256SUMS; echo '```'
+            echo "Размер образа: $(stat -c %s work/system.img) байт"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Compress
-        run: |
-          xz -T0 -3 -c work/system.img > work/CoraxOS-marker-test-arm64.img.xz
-          (cd work && sha256sum CoraxOS-marker-test-arm64.img.xz > SHA256SUMS && cat SHA256SUMS)
 
       - uses: actions/upload-artifact@v5
         with:
-          name: marker-test-image
-          path: |
-            work/CoraxOS-marker-test-arm64.img.xz
-            work/SHA256SUMS
-          retention-days: 7
+          name: corax-os-gsi-test
+          path: dist/
+          retention-days: 14
           compression-level: 0

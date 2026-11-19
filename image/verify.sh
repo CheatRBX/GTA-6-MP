@@ -39,7 +39,10 @@ if [[ -n $expected ]]; then
   if [[ -n $unexpected ]]; then
     echo "НЕОЖИДАННЫЕ изменения:"; echo "$unexpected"; exit 1
   fi
-  missing=$(comm -13 "$work/changed.txt" "$work/expected.txt")
+  # Папки из списка могут не измениться (уже были в образе) — это не ошибка.
+  missing=$(comm -13 "$work/changed.txt" "$work/expected.txt" | while read -r p; do
+    [[ -d "$work/b/$p" ]] || echo "$p"
+  done)
   if [[ -n $missing ]]; then
     echo "Ожидались, но не найдены:"; echo "$missing"; exit 1
   fi

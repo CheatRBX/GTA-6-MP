@@ -89,10 +89,12 @@ ui launcher
 step "3) Плитка в Настройках"
 adb shell am start -W -a android.settings.SETTINGS >/dev/null; sleep 4
 found=""
-for i in 1 2 3 4 5; do
+# Прокрутка — от размера экрана (у эмулятора по умолчанию 320×640).
+read -r W H < <(adb shell wm size | grep -oE '[0-9]+x[0-9]+' | tail -1 | tr 'x' ' ')
+for i in 1 2 3 4 5 6 7 8; do
   ui "settings-$i"
   if grep -q "Corax Центр" "$OUT/settings-$i-summary.txt"; then found="settings-$i"; break; fi
-  adb shell input swipe 540 1700 540 700 300; sleep 2
+  adb shell input swipe $((W / 2)) $((H * 8 / 10)) $((W / 2)) $((H * 3 / 10)) 400; sleep 2
 done
 [[ -n $found ]] || { echo "ОШИБКА: плитки «Corax Центр» нет в Настройках"; exit 1; }
 tap_text "$found" "Corax Центр"; sleep 3
