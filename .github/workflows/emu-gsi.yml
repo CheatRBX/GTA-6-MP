@@ -1,0 +1,108 @@
+name: emu-gsi
+
+# Проверка без телефона: те же изменения Corax OS (image/make-overlay.sh) кладём в официальный
+# GSI Android 17 x86_64 от Google, подменяем им раздел system в эмуляторе и загружаем.
+# Плагин android-emulator-qa проверяет: метки версии, системный Corax Центр, нашу анимацию,
+# экран «Добро пожаловать» и плитку в Настройках. (Наш основной GSI — arm64, его эмулятор
+# на x86-раннере не запустит; этот прогон проверяет сам способ сборки.)
+on:
+  push:
+    paths: ["qa/emu-gsi/**", "image/**", ".github/workflows/emu-gsi.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GSI_URL: https://dl.google.com/developers/android/cinnamonbun/images/gsi/aosp_x86_64-exp-CP3A.260905.010-16176746-81e37ae9.zip
+  GSI_SHA256: 81e37ae9e9280497c92fbda758b998a7dfab91ab9de000021622afa868a43b70
+  EMU_API: "36"
+
+jobs:
+  emu-gsi:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq e2fsprogs android-sdk-libsparse-utils xz-utils attr jq libcairo2 gdisk unzip
+          pip install pillow numpy cairosvg
+
+      - name: Boot animation
+        run: python3 brand/bootanim/build.py && python3 brand/bootanim/check.py brand/out/bootanimation.zip
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Corax Center APK
+        working-directory: apps
+        run: ./gradlew :center:assembleDebug --console=plain
+
+      - name: Download Android 17 x86_64 GSI (Google)
+        run: |
+          mkdir -p work
+          curl -fL --retry 3 -o work/gsi.zip "$GSI_URL"
+          echo "$GSI_SHA256  work/gsi.zip" | sha256sum -c -
+          unzip -p work/gsi.zip system.img > work/gsi-system.img
+          rm work/gsi.zip
+          RAW_ONLY=1 bash image/repack.sh work/gsi-system.img /dev/null work/base.img
+          rm work/gsi-system.img
+          echo "VERSION=$(jq -r .version brand/brand.json)" >> "$GITHUB_ENV"
+
+      - name: Corax overlay + repack
+        run: |
+          bash image/make-overlay.sh work/base.img overlay \
+            apps/center/build/outputs/apk/debug/center-debug.apk brand/out/bootanimation.zip expected.txt
+          bash image/repack.sh work/base.img overlay work/system.img
+          rm work/base.img
+
+      - name: Emulator system image
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "system-images;android-$EMU_API;google_apis;x86_64" > /dev/null
+          ls -la "$ANDROID_HOME/system-images/android-$EMU_API/google_apis/x86_64"
+
+      - name: Build emulator disk with Corax GSI
+        run: |
+          bash qa/emu-gsi/build-disk.sh "$ANDROID_HOME/system-images/android-$EMU_API/google_apis/x86_64" work/system.img emu-sysdir
+          rm work/system.img
+          df -h /
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Boot Corax GSI in emulator + QA
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          cores: 4
+          ram-size: 4096M
+          emulator-boot-timeout: 1200
+          emulator-options: -sysdir ${{ github.workspace }}/emu-sysdir -no-window -gpu swiftshader_indirect -noaudio -no-snapshot
+          script: bash qa/emu-gsi/check.sh "$VERSION" brand/out/bootanimation.zip
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: emu-gsi-qa
+          path: qa-output/
+          if-no-files-found: ignore

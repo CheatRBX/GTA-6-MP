@@ -47,6 +47,7 @@ serial=$(adb devices | awk 'NR>1 && $2=="device" {print $1; exit}')
 echo "serial: $serial"
 adb shell getprop ro.build.version.release
 
+if [[ ${SKIP_INSTALL:-0} != 1 ]]; then
 step "Делаем /system записываемым"
 adb root; sleep 3
 adb remount || true          # первый раз отключает verity и просит перезагрузку
@@ -61,6 +62,7 @@ adb shell chmod 644 /system/priv-app/CoraxCenter/CoraxCenter.apk
 adb reboot; wait_boot
 adb shell pm path "$PKG"
 adb shell dumpsys package "$PKG" | grep -E 'flags=|privateFlags=' | head -2
+fi
 
 step "1) HOME → наш экран"
 before=$(home_target); echo "HOME: $before" | tee "$OUT/home-before.txt"
