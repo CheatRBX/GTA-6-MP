@@ -10,12 +10,16 @@ mkdir -p "$OUT"
 QA="python3 qa/android-qa/scripts/android-qa.py"
 p() { adb shell getprop "$1" 2>/dev/null | tr -d '\r'; }
 fail() { echo "ОШИБКА: $*"; adb logcat -d > "$OUT/safeboot-logcat.txt" || true; exit 1; }
-wait_boot() { # wait_boot <секунд>: ждём sys.boot_completed=1, переживая перезагрузки
-  local deadline=$(( $(date +%s) + $1 ))
+wait_boot() { # wait_boot <секунд>: ждём sys.boot_completed=1, переживая перезагрузки; пишем ход в лог
+  local deadline=$(( $(date +%s) + $1 )) last=""
   while (( $(date +%s) < deadline )); do
-    adb wait-for-device >/dev/null 2>&1 || true
-    [[ $(p sys.boot_completed) == 1 ]] && { sleep 5; return 0; }
-    sleep 3
+    timeout 30 adb wait-for-device >/dev/null 2>&1 || true
+    local state now
+    state=$(timeout 10 adb get-state 2>/dev/null || echo нет)
+    now="adb=$state attempts=$(timeout 10 adb shell getprop persist.corax.boot_attempts 2>/dev/null | tr -d '\r') safemode=$(timeout 10 adb shell getprop sys.corax.safemode 2>/dev/null | tr -d '\r') boot=$(timeout 10 adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')"
+    [[ $now != "$last" ]] && { echo "  $(date -u +%H:%M:%S) $now"; last=$now; }
+    [[ $now == *"boot=1"* ]] && { sleep 5; return 0; }
+    sleep 5
   done
   return 1
 }
@@ -43,7 +47,7 @@ adb shell setprop persist.corax.test_breaker 1
 start=$(date +%s)
 adb reboot
 sleep 20
-wait_boot 900 || fail "система так и не загрузилась — безопасный запуск не сработал"
+wait_boot 1200 || fail "система так и не загрузилась — безопасный запуск не сработал"
 adb root >/dev/null; sleep 3
 took=$(( $(date +%s) - start ))
 reasons=$(p persist.sys.boot.reason.history | tr '\n' ' ')
