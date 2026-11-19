@@ -53,7 +53,18 @@ jobs:
             sum_url=$(jq -r --arg re "$sum_re" '[.assets[] | select(.name | test($re))][0].browser_download_url' release.json)
             [ "$sum_url" != "null" ] || { echo "Нет файла контрольных сумм"; exit 1; }
             curl -fL --retry 3 -o work/author-sums.txt "$sum_url"
-            grep -qi "$actual" work/author-sums.txt || { echo "Сумма $actual не найдена в SHA256SUMS автора"; exit 1; }
+            echo "SHA256SUMS автора:"; cat work/author-sums.txt
+            if ! grep -qi "$actual" work/author-sums.txt; then
+              # Автор считает сумму распакованного .img (так написано в его инструкции).
+              case "$name" in
+                *.xz) raw_sum=$(xz -dc -T0 "work/$name" | sha256sum | cut -d' ' -f1) ;;
+                *.gz) raw_sum=$(gzip -dc "work/$name" | sha256sum | cut -d' ' -f1) ;;
+                *) raw_sum="" ;;
+              esac
+              echo "sha256 распакованного образа: $raw_sum"
+              [ -n "$raw_sum" ] && grep -qi "$raw_sum" work/author-sums.txt \
+                || { echo "Ни сумма архива, ни сумма образа не совпали с SHA256SUMS автора"; exit 1; }
+            fi
           fi
           echo "BASE=work/$name" >> "$GITHUB_ENV"
           {
