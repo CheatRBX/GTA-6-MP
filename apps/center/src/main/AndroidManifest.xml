@@ -47,5 +47,18 @@
                 android:name="com.android.settings.icon"
                 android:resource="@drawable/ic_corax" />
         </activity>
+        <!-- Иконка в списке приложений — только когда APK поставлен как обычное приложение
+             (демо на любом телефоне). В GSI Corax OS приложение системное и прячет её само. -->
+        <activity-alias
+            android:name=".DemoLauncher"
+            android:exported="true"
+            android:icon="@drawable/ic_corax"
+            android:label="@string/center_title"
+            android:targetActivity=".CenterActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
     </application>
 </manifest>

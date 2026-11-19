@@ -1,5 +1,9 @@
 package org.coraxos.center
 
+import android.content.ComponentName
+import android.content.Intent
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -39,15 +43,30 @@ class CenterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // В системе (GSI) иконка в списке приложений не нужна: вход через Настройки.
+        if (applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0) {
+            packageManager.setComponentEnabledSetting(
+                ComponentName(this, "$packageName.DemoLauncher"),
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP,
+            )
+        }
         val model = SetupModel(DeviceFactsReader.read(), ChoiceStore.load(this))
-        setContent { CenterScreen(model) }
+        setContent { CenterScreen(model, onRestartWizard = ::restartWizard) }
+    }
+
+    /** «Пройти мастер заново»: включаем экран приветствия (он отключает себя в конце) и открываем его. */
+    private fun restartWizard() {
+        val welcome = ComponentName(this, WelcomeActivity::class.java)
+        packageManager.setComponentEnabledSetting(welcome, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+        startActivity(Intent().setComponent(welcome))
     }
 }
 
 private enum class Section(val title: String) { ROOT("Root"), GOOGLE("Сервисы Google"), KITS("Наборы"), DEVICE("Отчёт об устройстве") }
 
 @Composable
-private fun CenterScreen(model: SetupModel) {
+private fun CenterScreen(model: SetupModel, onRestartWizard: () -> Unit) {
     val context = LocalContext.current
     var open by remember { mutableStateOf<Section?>(null) }
     BackHandler(enabled = open != null) { open = null }
@@ -69,6 +88,7 @@ private fun CenterScreen(model: SetupModel) {
                     Group {
                         Entry("Вернуть boot как было", "Из бэкапа перед установкой root", "", enabled = s.root != RootMethod.NONE) {}
                         Entry("Отчёт об устройстве", "Ядро, разделы, совместимость", "") { open = Section.DEVICE }
+                        Entry("Пройти мастер заново", "Экран «Добро пожаловать» с самого начала", "", onClick = onRestartWizard)
                     }
                 } else {
                     StepHeader(null, section.title, null)
