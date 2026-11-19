@@ -1,5 +1,7 @@
 # ТОЛЬКО ДЛЯ ПРОВЕРКИ безопасного запуска (qa/safeboot/test.sh), в образ Corax OS не попадает.
-# Изображает «ломающее» дополнение: пока безопасный режим выключен, перезагружает систему
-# до окончания загрузки — то есть устраивает настоящий бутлуп.
-on zygote-start && property:persist.corax.test_breaker=1 && property:sys.corax.safemode=0
+# Изображает «ломающее» дополнение: когда система уже запускается (стартовал SurfaceFlinger), но ещё
+# не загрузилась до конца, перезагружает её — пока безопасный режим выключен. То есть настоящий бутлуп.
+# (Раньше перезагрузка была на zygote-start, за доли секунды до фоновой записи счётчика на диск,
+# и запись не успевала — реальный сбой дополнения случается позже.)
+on property:init.svc.surfaceflinger=running && property:persist.corax.test_breaker=1 && property:sys.corax.safemode=0
     setprop sys.powerctl reboot,corax-test-breaker
