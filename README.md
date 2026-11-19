@@ -18,7 +18,13 @@
 - **Всё собирается на GitHub** (GitHub Actions).
 
 ## Проверка в эмуляторе
-Снято автоматически на GitHub (плагин android-emulator-qa): мастер первого включения и Corax Центр.
+Снято автоматически на GitHub (плагин android-emulator-qa).
+
+GSI Android 17 с изменениями Corax OS, загруженный в эмуляторе (`emu-gsi.yml`):
+
+![GSI в эмуляторе](docs/img/emu-gsi.png)
+
+Мастер первого включения и Corax Центр (`qa.yml`):
 
 ![Проверка в эмуляторе](docs/img/emulator-qa.png)
 
