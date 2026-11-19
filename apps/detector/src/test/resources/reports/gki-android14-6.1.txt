@@ -1,0 +1,16 @@
+# Синтетический отчёт: телефон GKI, вышел с Android 14 (init_boot, A/B, super)
+abi=arm64-v8a
+kernel=6.1.75-android14-11-g8d0e1f2a5b6c-ab12345678
+first_api=34
+treble=true
+ab=true
+dynamic=true
+init_boot=true
+ram_mb=7800
+manufacturer=Example
+model=Phone 14
+soc=sm8550
+config_kallsyms=y
+config_kallsyms_all=y
+config_modules=y
+config_usb_configfs_f_hid=y

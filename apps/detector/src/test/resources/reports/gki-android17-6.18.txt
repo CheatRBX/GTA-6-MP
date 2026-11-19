@@ -1,0 +1,12 @@
+# Синтетический отчёт: телефон GKI на ветке android17-6.18
+abi=arm64-v8a
+kernel=6.18.12-android17-3-g0123456789ab
+first_api=37
+treble=true
+ab=true
+dynamic=true
+init_boot=true
+ram_mb=11800
+config_kallsyms=y
+config_kallsyms_all=y
+config_modules=y

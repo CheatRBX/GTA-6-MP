@@ -1,0 +1,9 @@
+# Синтетический отчёт: вышел с Android 10 — ниже минимальных требований
+abi=arm64-v8a
+kernel=4.14.190-perf
+first_api=29
+treble=true
+ab=true
+dynamic=true
+init_boot=false
+ram_mb=3700

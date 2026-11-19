@@ -1,0 +1,41 @@
+name: apps
+
+# Приложения ОС: пока детектор устройства (Kotlin/JVM) и его тесты.
+# Мастер первого включения и Центр управления добавятся сюда после согласования дизайна (шаг 2.0).
+on:
+  push:
+    paths: ["apps/**", ".github/workflows/apps.yml"]
+  pull_request:
+    paths: ["apps/**", ".github/workflows/apps.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  detector:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Detector tests
+        run: ./gradlew :detector:test --console=plain
+
+      - name: Test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detector-test-report
+          path: apps/detector/build/reports/tests/
+          if-no-files-found: ignore

@@ -1,0 +1,9 @@
+# Синтетический отчёт: наше ядро Corax (KernelSU встроен, NetHunter), конфиг не прочитан
+abi=arm64-v8a
+kernel=6.12.81-android16-5-corax-20261201
+first_api=35
+treble=true
+ab=true
+dynamic=true
+init_boot=true
+ram_mb=7800

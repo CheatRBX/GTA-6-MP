@@ -1,0 +1,12 @@
+# Синтетический отчёт: телефон без GKI, вышел с Android 11, ядро производителя 4.19
+abi=arm64-v8a
+kernel=4.19.157-perf+
+first_api=30
+treble=true
+ab=false
+dynamic=true
+init_boot=false
+ram_mb=5700
+config_kallsyms=y
+config_kallsyms_all=y
+config_modules=y

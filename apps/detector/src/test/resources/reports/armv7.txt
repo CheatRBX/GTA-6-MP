@@ -1,0 +1,5 @@
+# Синтетический отчёт: 32-битный процессор
+abi=armeabi-v7a
+kernel=4.9.227
+first_api=30
+treble=true
