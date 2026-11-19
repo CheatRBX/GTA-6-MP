@@ -1,0 +1,21 @@
+CoraxOS (рабочее название)
+Copyright 2026 CoraxOS contributors
+
+Собственный код проекта распространяется по лицензии Apache License 2.0 (файл LICENSE).
+
+Сторонние компоненты и их лицензии:
+- Inter (шрифт надписи логотипа) — SIL Open Font License 1.1, brand/fonts/OFL.txt
+- LineageOS — Apache 2.0 / GPL-2.0 (ядро), https://github.com/LineageOS
+- TrebleDroid — Apache 2.0, https://github.com/TrebleDroid
+- Ядро Linux / Android Common Kernel — GPL-2.0, https://android.googlesource.com/kernel/common
+- Magisk — GPL-3.0, https://github.com/topjohnwu/Magisk (скачивается по выбору пользователя)
+- KernelSU — GPL-3.0, https://github.com/tiann/KernelSU (скачивается по выбору пользователя)
+- APatch — GPL-3.0, https://github.com/bmax121/APatch (скачивается по выбору пользователя)
+- Kali NetHunter — GPL-2.0/GPL-3.0, https://www.kali.org/docs/nethunter/ (скачивается по выбору пользователя)
+- microG — Apache 2.0, https://microg.org (скачивается по выбору пользователя)
+
+Google-приложения (GApps) в образ не входят и проектом не распространяются:
+пакет скачивается у его авторов только если пользователь сам выбрал этот пункт.
+
+«LineageOS», «Android», «Kali» и «NetHunter» — товарные знаки их владельцев.
+Проект с ними не связан и не использует их как свой бренд.

@@ -1,0 +1,24 @@
+# Результаты сборки (публикуются как артефакты GitHub Actions)
+brand/out/
+qa-output/
+out/
+build/
+.gradle/
+local.properties
+*.apk
+*.aab
+*.img
+*.img.xz
+*.zip
+
+# Ключи подписи — только в GitHub Secrets
+*.jks
+*.keystore
+*.pk8
+*.x509.pem
+keystore.properties
+
+__pycache__/
+*.pyc
+.idea/
+.DS_Store
