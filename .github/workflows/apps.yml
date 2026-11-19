@@ -35,6 +35,13 @@ jobs:
       - name: Build Corax Center
         run: ./gradlew :center:assembleDebug --console=plain
 
+      - name: Corax Center APK
+        uses: actions/upload-artifact@v5
+        with:
+          name: CoraxCenter-apk
+          path: apps/center/build/outputs/apk/debug/center-debug.apk
+          retention-days: 30
+
       - name: Test report
         if: always()
         uses: actions/upload-artifact@v5
