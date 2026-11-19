@@ -1,0 +1,53 @@
+name: qa
+
+# Шаг 0.3 плана: Corax Центр в эмуляторе Android 17 как системное приложение.
+# Проверки делает плагин android-emulator-qa (qa/android-qa), сценарий — qa/emulator-spike.sh.
+on:
+  push:
+    paths: ["apps/center/**", "qa/**", ".github/workflows/qa.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  emulator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Build Corax Center APK
+        working-directory: apps
+        run: ./gradlew :center:assembleDebug --console=plain
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Emulator QA (Android 17)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: "37.0"
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -writable-system -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: bash qa/emulator-spike.sh apps/center/build/outputs/apk/debug/center-debug.apk
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: qa-output
+          path: qa-output/
+          if-no-files-found: ignore

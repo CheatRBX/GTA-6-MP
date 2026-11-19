@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "coraxos-apps"
-include(":detector")
+include(":detector", ":center")

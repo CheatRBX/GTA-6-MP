@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Corax</string>
+    <string name="welcome_title">Добро пожаловать в Corax</string>
+    <string name="welcome_subtitle">Полный контроль. Твой телефон — твои правила.</string>
+    <string name="welcome_start">Начать</string>
+    <string name="center_title">Corax Центр</string>
+    <string name="center_summary">Root, сервисы Google, Kali NetHunter, драйверы</string>
+</resources>

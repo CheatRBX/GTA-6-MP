@@ -1,6 +1,6 @@
 name: apps
 
-# Приложения ОС: пока детектор устройства (Kotlin/JVM) и его тесты.
+# Приложения ОС: детектор устройства (тесты) и Corax Центр (сборка APK).
 # Мастер первого включения и Центр управления добавятся сюда после согласования дизайна (шаг 2.0).
 on:
   push:
@@ -31,6 +31,9 @@ jobs:
 
       - name: Detector tests
         run: ./gradlew :detector:test --console=plain
+
+      - name: Build Corax Center
+        run: ./gradlew :center:assembleDebug --console=plain
 
       - name: Test report
         if: always()
