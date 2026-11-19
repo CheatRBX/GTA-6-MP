@@ -14,7 +14,7 @@ import java.io.File
 object DeviceFactsReader {
 
     fun read(): DeviceFacts {
-        val firstApi = Build.VERSION.DEVICE_INITIAL_SDK_INT
+        val firstApi = prop("ro.product.first_api_level").toIntOrNull() ?: Build.VERSION.SDK_INT
         return DeviceFacts(
             abi = Build.SUPPORTED_ABIS.firstOrNull().orEmpty(),
             kernel = KernelVersion.parse(System.getProperty("os.version").orEmpty()),

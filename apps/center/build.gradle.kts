@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "org.coraxos.center"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "org.coraxos.center"

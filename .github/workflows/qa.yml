@@ -1,6 +1,6 @@
 name: qa
 
-# Шаг 0.3 плана: Corax Центр в эмуляторе Android 17 как системное приложение.
+# Шаг 0.3 плана: Corax Центр в эмуляторе как системное приложение.
 # Проверки делает плагин android-emulator-qa (qa/android-qa), сценарий — qa/emulator-spike.sh.
 on:
   push:
@@ -35,13 +35,19 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Emulator QA (Android 17)
+      # Образ Android 17 (37.0) на бесплатном раннере не успевает загрузиться (программная графика),
+      # поэтому механику проверяем на Android 16 (API 36): плитка в Настройках и HOME работают так же.
+      - name: Emulator QA (Android 16)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: "37.0"
+          api-level: 36
           target: google_apis
           arch: x86_64
           disable-animations: true
+          cores: 4
+          ram-size: 4096M
+          disk-size: 8G
+          emulator-boot-timeout: 900
           emulator-options: -writable-system -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           script: bash qa/emulator-spike.sh apps/center/build/outputs/apk/debug/center-debug.apk
 
