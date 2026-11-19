@@ -1,0 +1,102 @@
+name: image
+
+# Шаг 0.1 плана: скачать готовый LineageOS 24 GSI, положить в него наш файл-метку,
+# упаковать обратно и доказать, что изменилось ровно то, что мы положили.
+# Режим full (с приложениями, сервисом и брендом) добавится в фазе 5.
+on:
+  push:
+    paths: ["image/**", ".github/workflows/image.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repack:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq e2fsprogs android-sdk-libsparse-utils xz-utils attr jq
+
+      - name: Download base GSI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          repo=$(jq -r .github_repo image/base.json)
+          tag=$(jq -r .tag image/base.json)
+          re=$(jq -r .asset_regex image/base.json)
+          sum_re=$(jq -r .checksums_asset_regex image/base.json)
+          pinned=$(jq -r .sha256 image/base.json)
+          gh api "repos/$repo/releases/tags/$tag" > release.json
+          echo "Файлы релиза:"; jq -r '.assets[] | "\(.name)\t\(.size)"' release.json
+          url=$(jq -r --arg re "$re" '[.assets[] | select(.name | test($re))][0].browser_download_url' release.json)
+          [ "$url" != "null" ] || { echo "Нет файла по шаблону $re"; exit 1; }
+          name=$(basename "$url")
+          mkdir -p work
+          curl -fL --retry 3 -o "work/$name" "$url"
+          actual=$(sha256sum "work/$name" | cut -d' ' -f1)
+          if [ -n "$pinned" ]; then
+            [ "$actual" = "$pinned" ] || { echo "SHA256 не совпал: $actual != $pinned"; exit 1; }
+          else
+            sum_url=$(jq -r --arg re "$sum_re" '[.assets[] | select(.name | test($re))][0].browser_download_url' release.json)
+            [ "$sum_url" != "null" ] || { echo "Нет файла контрольных сумм"; exit 1; }
+            curl -fL --retry 3 -o work/author-sums.txt "$sum_url"
+            grep -qi "$actual" work/author-sums.txt || { echo "Сумма $actual не найдена в SHA256SUMS автора"; exit 1; }
+          fi
+          echo "BASE=work/$name" >> "$GITHUB_ENV"
+          {
+            echo "### Базовый GSI"
+            echo "- файл: \`$name\` ($repo, $tag)"
+            echo "- sha256: \`$actual\` (зафиксировать в image/base.json)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Overlay (marker)
+        run: |
+          mkdir -p overlay/system/etc
+          printf 'CoraxOS marker\nrun=%s\ncommit=%s\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" > overlay/system/etc/corax-marker
+          echo ./system/etc/corax-marker > expected.txt
+
+      - name: Repack
+        run: bash image/repack.sh "$BASE" overlay work/system.img
+
+      - name: Unpack original for comparison
+        run: RAW_ONLY=1 bash image/repack.sh "$BASE" overlay work/base.img
+
+      - name: Verify (only the marker changed)
+        run: sudo bash image/verify.sh work/base.img work/system.img expected.txt
+
+      - name: Image info
+        run: |
+          dumpe2fs -h work/system.img 2>/dev/null | grep -E 'features|Block count|Block size|Free blocks'
+          debugfs -R 'cat /system/etc/corax-marker' work/system.img
+          ls -l work/
+          {
+            echo "### Результат"
+            echo "- размер base: $(stat -c %s work/base.img) байт, новый: $(stat -c %s work/system.img) байт"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Compress
+        run: |
+          xz -T0 -3 -c work/system.img > work/CoraxOS-marker-test-arm64.img.xz
+          (cd work && sha256sum CoraxOS-marker-test-arm64.img.xz > SHA256SUMS && cat SHA256SUMS)
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: marker-test-image
+          path: |
+            work/CoraxOS-marker-test-arm64.img.xz
+            work/SHA256SUMS
+          retention-days: 7
+          compression-level: 0

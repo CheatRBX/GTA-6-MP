@@ -1,0 +1,11 @@
+{
+  "_comment": "Базовый GSI для v1. Образ скачивается из релиза GitHub и проверяется по SHA256SUMS автора; найденную сумму workflow пишет в отчёт, после первой проверки её фиксируем в поле sha256.",
+  "name": "LineageOS 24.0 GSI arm64_bvN (eyzner)",
+  "github_repo": "eyzner/LineageOS-GSI",
+  "tag": "lineage-24.0-20261029",
+  "asset_regex": "arm64_bvN\\.img\\.xz$",
+  "checksums_asset_regex": "SHA256SUMS",
+  "sha256": "",
+  "security_patch": "2026-10-01",
+  "source": "https://github.com/eyzner/LineageOS-GSI"
+}

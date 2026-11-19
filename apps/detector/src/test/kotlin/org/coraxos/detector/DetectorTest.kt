@@ -8,8 +8,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+private object Reports
+
 private fun report(name: String): DeviceFacts {
-    val text = checkNotNull(DetectorTest::class.java.getResource("/reports/$name.txt")) { "нет отчёта $name" }.readText()
+    val text = checkNotNull(Reports::class.java.getResource("/reports/$name.txt")) { "нет отчёта $name" }.readText()
     return DeviceReport.parse(text)
 }
 
