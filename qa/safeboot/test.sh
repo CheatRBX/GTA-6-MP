@@ -8,8 +8,9 @@ set -euo pipefail
 OUT=qa-output
 mkdir -p "$OUT"
 QA="python3 qa/android-qa/scripts/android-qa.py"
-p() { adb shell getprop "$1" 2>/dev/null | tr -d '\r'; }
-fail() { echo "ОШИБКА: $*"; adb logcat -d > "$OUT/safeboot-logcat.txt" || true; exit 1; }
+A() { timeout 60 adb "$@"; }   # любой вызов adb — не дольше минуты
+p() { timeout 15 adb shell getprop "$1" 2>/dev/null | tr -d '\r'; }
+fail() { echo "ОШИБКА: $*"; timeout 60 adb logcat -d > "$OUT/safeboot-logcat.txt" || true; exit 1; }
 wait_boot() { # wait_boot <секунд>: ждём sys.boot_completed=1, переживая перезагрузки; пишем ход в лог
   local deadline=$(( $(date +%s) + $1 )) last=""
   while (( $(date +%s) < deadline )); do
@@ -25,30 +26,30 @@ wait_boot() { # wait_boot <секунд>: ждём sys.boot_completed=1, пер�
 }
 
 echo "== Ставим безопасный запуск и «ломатель»"
-adb root >/dev/null; sleep 3
-adb remount >/dev/null
-adb push image/corax.rc /system/etc/init/corax.rc >/dev/null
-adb push qa/safeboot/breaker.rc /system/etc/init/corax-test-breaker.rc >/dev/null
-adb shell "grep -q '^sys.corax.safemode=' /system/build.prop || printf 'persist.corax.boot_attempts=0\npersist.corax.safemode=0\nsys.corax.safemode=0\n' >> /system/build.prop"
-adb shell setprop persist.corax.test_breaker 0
-adb shell setprop persist.corax.safemode 0
-adb shell setprop persist.corax.boot_attempts 0
-adb reboot
+A root >/dev/null; sleep 3
+A remount >/dev/null
+A push image/corax.rc /system/etc/init/corax.rc >/dev/null
+A push qa/safeboot/breaker.rc /system/etc/init/corax-test-breaker.rc >/dev/null
+A shell "grep -q '^sys.corax.safemode=' /system/build.prop || printf 'persist.corax.boot_attempts=0\npersist.corax.safemode=0\nsys.corax.safemode=0\n' >> /system/build.prop"
+A shell setprop persist.corax.test_breaker 0
+A shell setprop persist.corax.safemode 0
+A shell setprop persist.corax.boot_attempts 0
+A reboot
 wait_boot 600 || fail "обычная загрузка не завершилась"
 
 echo "== Обычная загрузка"
-adb root >/dev/null; sleep 3
+A root >/dev/null; sleep 3
 echo "attempts=$(p persist.corax.boot_attempts) safemode=$(p sys.corax.safemode)" | tee "$OUT/safeboot-1-normal.txt"
 [[ $(p persist.corax.boot_attempts) == 0 ]] || fail "счётчик не сброшен после загрузки"
 [[ $(p sys.corax.safemode) == 0 ]] || fail "безопасный режим включился без причины"
 
 echo "== Включаем «ломатель»: ждём бутлуп и выход из него"
-adb shell setprop persist.corax.test_breaker 1
+A shell setprop persist.corax.test_breaker 1
 start=$(date +%s)
-adb reboot
+A reboot
 sleep 20
 wait_boot 1200 || fail "система так и не загрузилась — безопасный запуск не сработал"
-adb root >/dev/null; sleep 3
+A root >/dev/null; sleep 3
 took=$(( $(date +%s) - start ))
 reasons=$(p persist.sys.boot.reason.history | tr '\n' ' ')
 {
@@ -62,8 +63,8 @@ reasons=$(p persist.sys.boot.reason.history | tr '\n' ' ')
 grep -q corax-test-breaker <<<"$reasons" || echo "(предупреждение: в истории нет перезагрузок «ломателя»)"
 
 echo "== Corax Центр показывает безопасный режим"
-adb shell am start -W -n org.coraxos.center/.CenterActivity >/dev/null; sleep 4
-serial=$(adb devices | awk 'NR>1 && $2=="device" {print $1; exit}')
+A shell am start -W -n org.coraxos.center/.CenterActivity >/dev/null; sleep 4
+serial=$(timeout 20 adb devices | awk 'NR>1 && $2=="device" {print $1; exit}')
 $QA dump-ui --serial "$serial" --out "$OUT/safeboot-center.xml"
 $QA summarize-ui --input "$OUT/safeboot-center.xml" --out "$OUT/safeboot-center-summary.txt"
 $QA screenshot --serial "$serial" --out "$OUT/safeboot-center.png"
@@ -74,7 +75,7 @@ else
 fi
 
 echo "== Уборка"
-adb shell setprop persist.corax.test_breaker 0
-adb shell setprop persist.corax.safemode 0
-adb shell rm -f /system/etc/init/corax-test-breaker.rc
+A shell setprop persist.corax.test_breaker 0
+A shell setprop persist.corax.safemode 0
+A shell rm -f /system/etc/init/corax-test-breaker.rc
 echo "OK: безопасный запуск вывел систему из бутлупа"
