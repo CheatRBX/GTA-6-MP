@@ -96,8 +96,9 @@ jobs:
           disable-animations: true
           cores: 4
           ram-size: 4096M
-          emulator-boot-timeout: 1200
-          emulator-options: -sysdir ${{ github.workspace }}/emu-sysdir -no-window -gpu swiftshader_indirect -noaudio -no-snapshot
+          emulator-boot-timeout: 900
+          # -show-kernel и -logcat: ядро и системный журнал гостя попадают в лог прогона (диагностика загрузки).
+          emulator-options: -sysdir ${{ github.workspace }}/emu-sysdir -no-window -gpu swiftshader_indirect -noaudio -no-snapshot -show-kernel -logcat *:W
           script: bash qa/emu-gsi/check.sh "$VERSION" brand/out/bootanimation.zip
 
       - uses: actions/upload-artifact@v5
