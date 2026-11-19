@@ -75,7 +75,9 @@ else
 fi
 
 echo "== Уборка"
-A shell setprop persist.corax.test_breaker 0
-A shell setprop persist.corax.safemode 0
-A shell rm -f /system/etc/init/corax-test-breaker.rc
+# После перезагрузок /system снова только для чтения — уборка не должна валить проверку.
+A root >/dev/null 2>&1 || true; sleep 3
+A shell setprop persist.corax.test_breaker 0 || true
+A shell setprop persist.corax.safemode 0 || true
+A remount >/dev/null 2>&1 && A shell rm -f /system/etc/init/corax-test-breaker.rc || echo "(уборка: файл «ломателя» не удалён — эмулятор всё равно одноразовый)"
 echo "OK: безопасный запуск вывел систему из бутлупа"
