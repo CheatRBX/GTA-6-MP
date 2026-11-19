@@ -1,7 +1,7 @@
 {
   "_comment": "Единственный источник названия и цветов. Сменить имя ОС = поправить этот файл и пересобрать (brand.yml).",
   "name": "Corax",
-  "os_name": "CoraxOS",
+  "os_name": "Corax OS",
   "id": "corax",
   "package_prefix": "org.coraxos",
   "version": "0.1.0",
@@ -9,7 +9,7 @@
   "base": "LineageOS 24.0 + TrebleDroid",
   "tagline_ru": "Полный контроль. Твой телефон — твои правила.",
   "tagline_en": "Full control. Your phone, your rules.",
-  "logo_variant": "orbit",
+  "logo_variant": "shard",
   "colors": {
     "background": "#07090D",
     "surface": "#11151C",

@@ -1,5 +1,5 @@
 @echo off
-rem Установка CoraxOS через fastboot / fastbootd (Windows).
+rem Установка Corax OS через fastboot / fastbootd (Windows).
 rem   flash.bat CoraxOS.img [vbmeta.img]
 rem Образ .img.xz сначала распакуйте (например, 7-Zip) до .img.
 setlocal EnableDelayedExpansion

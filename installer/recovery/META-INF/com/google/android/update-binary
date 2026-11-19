@@ -1,5 +1,5 @@
 #!/sbin/sh
-# Установщик CoraxOS для TWRP, OrangeFox и adb sideload.
+# Установщик Corax OS для TWRP, OrangeFox и adb sideload.
 # Пишет system.img.xz из архива в раздел system текущего слота
 # (обычный раздел или логический внутри super).
 OUTFD=/proc/self/fd/$2
@@ -9,7 +9,7 @@ ui_print() { echo "ui_print $1" > "$OUTFD"; echo "ui_print" > "$OUTFD"; }
 abort() { ui_print "ОШИБКА: $1"; exit 1; }
 
 ui_print " "
-ui_print "  CoraxOS — установка"
+ui_print "  Corax OS — установка"
 ui_print " "
 
 SLOT=$(getprop ro.boot.slot_suffix 2>/dev/null)

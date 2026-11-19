@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Установка CoraxOS через fastboot / fastbootd (Linux, macOS).
+# Установка Corax OS через fastboot / fastbootd (Linux, macOS).
 #
 #   ./flash.sh CoraxOS-*.img.xz [--vbmeta vbmeta.img] [--keep-data] [--yes]
 #
 #   --vbmeta     vbmeta.img из стоковой прошивки: прошивается с отключённой проверкой (нужно почти всегда)
-#   --keep-data  не стирать данные (только для обновления CoraxOS поверх CoraxOS)
+#   --keep-data  не стирать данные (только для обновления Corax OS поверх Corax OS)
 #   --yes        не спрашивать подтверждение
 set -euo pipefail
 

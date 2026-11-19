@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Вариант логотипа A (orbit), упрощённый до двух цветов для иконки. -->
+<!-- Логотип Corax OS, вариант B (shard): шестиугольник без правой грани и ромб в разрыве. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="512"
     android:viewportHeight="512">
     <path
-        android:pathData="M382.33,369.75 A170,170 0 1,1 382.33,142.25"
+        android:pathData="M407.55,343.5 L256,431 L104.45,343.5 L104.45,168.5 L256,81 L407.55,168.5"
         android:strokeColor="#7C5CFF"
         android:strokeLineCap="round"
-        android:strokeWidth="60" />
+        android:strokeLineJoin="round"
+        android:strokeWidth="54" />
     <path
         android:fillColor="#22D3EE"
-        android:pathData="M426,256 m-34,0 a34,34 0 1,0 68,0 a34,34 0 1,0 -68,0" />
+        android:pathData="M407.55,216 L447.55,256 L407.55,296 L367.55,256 Z" />
 </vector>

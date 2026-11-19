@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# Снимок устройства для детектора CoraxOS (шаг 0.2 плана).
+# Снимок устройства для детектора Corax OS (шаг 0.2 плана).
 # Запуск с компьютера:
 #   adb push qa/probe.sh /data/local/tmp/ && adb shell sh /data/local/tmp/probe.sh > device-reports/<модель>.txt
 # Ничего не меняет на телефоне, только читает. Root не нужен (с root конфиг ядра читается полнее).
@@ -8,7 +8,7 @@ prop() { getprop "$1"; }
 yesno() { if [ -n "$1" ] && [ "$1" != "false" ] && [ "$1" != "0" ]; then echo true; else echo false; fi; }
 has_part() { [ -e "/dev/block/by-name/$1" ] || [ -e "/dev/block/by-name/${1}_a" ]; }
 
-echo "# CoraxOS probe $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "# Corax OS probe $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "abi=$(prop ro.product.cpu.abi)"
 echo "kernel=$(uname -r)"
 first_api=$(prop ro.product.first_api_level)
