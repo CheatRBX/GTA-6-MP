@@ -2,7 +2,7 @@
 # Шаг 0.3 плана: в эмуляторе Android 17 ставим Corax Центр системным приложением (priv-app)
 # и проверяем плагином android-emulator-qa:
 #   1) после установки HOME открывает наш экран «Добро пожаловать»;
-#   2) кнопка «Начать» отключает его, и HOME снова ведёт в обычный лаунчер;
+#   2) мастер проходится до конца (профиль «Пентестер»), после чего HOME снова ведёт в лаунчер;
 #   3) в Настройках есть плитка «Corax Центр», и она открывает наш экран.
 # Доказательства (скриншоты, UI-дампы, logcat) — в qa-output/.
 #
@@ -67,10 +67,21 @@ before=$(home_target); echo "HOME: $before" | tee "$OUT/home-before.txt"
 [[ $before == "$PKG/.WelcomeActivity" ]] || { echo "ОШИБКА: HOME ведёт не к нам"; exit 1; }
 adb shell input keyevent KEYCODE_HOME; sleep 4
 ui welcome
-grep -q "Добро пожаловать в Corax" "$OUT/welcome-summary.txt" || { echo "ОШИБКА: нет экрана приветствия"; exit 1; }
+grep -q "CORAX" "$OUT/welcome-summary.txt" || { echo "ОШИБКА: нет экрана приветствия"; exit 1; }
 
-step "2) «Начать» → обычный лаунчер"
-tap_text welcome "Начать"; sleep 4
+step "2) Мастер: профиль «Пентестер» → … → «Применить» → «На рабочий стол»"
+tap_text welcome "Начать"; sleep 3
+ui profile
+tap_text profile "Пентестер"; sleep 1
+for screen in google root kits summary; do
+  ui "before-$screen"
+  tap_text "before-$screen" "Далее"; sleep 2
+done
+ui summary
+grep -q "Пентестер" "$OUT/summary-summary.txt" || { echo "ОШИБКА: в сводке нет профиля"; exit 1; }
+tap_text summary "Применить"; sleep 10
+ui done
+tap_text done "На рабочий стол"; sleep 4
 after=$(home_target); echo "HOME: $after" | tee "$OUT/home-after.txt"
 [[ $after != "$PKG/.WelcomeActivity" ]] || { echo "ОШИБКА: экран приветствия не отключился"; exit 1; }
 ui launcher
