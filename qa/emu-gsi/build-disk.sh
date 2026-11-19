@@ -70,5 +70,11 @@ param: "androidboot.vbmeta.hash_alg=sha256"
 param: "androidboot.vbmeta.digest=$vdigest"
 PROTO
 cat "$out/VerifiedBootParams.textproto"
+
+# Эмулятор по умолчанию ведёт себя как телефон с ЗАБЛОКИРОВАННЫМ загрузчиком: такой не пускает
+# систему с отключённой проверкой vbmeta (init: "PUBLIC_KEY_REJECTED isn't allowed").
+# GSI ставят только на разблокированные телефоны — делаем эмулятор разблокированным.
+printf ' androidboot.vbmeta.device_state=unlocked androidboot.verifiedbootstate=orange' >> "$out/kernel_cmdline.txt"
+echo "kernel_cmdline.txt: $(cat "$out/kernel_cmdline.txt")"
 rm -rf "$work"
 echo "Готово: $out"
