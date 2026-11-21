@@ -8,7 +8,7 @@ set -e
 cd "$(dirname "$0")/.."
 PRESET=${PRESET:-nano}
 STEPS=${STEPS:-1500}
-FT_STEPS=${FT_STEPS:-200}
+FT_STEPS=${FT_STEPS:-100}
 QUANT=${QUANT:-q8}
 
 [ -x ./corax ] || make
@@ -43,7 +43,10 @@ echo "◆ 4/6 Готовлю диалоги для дообучения"
 python3 tools/prepare.py sft data/sft_example.jsonl --tokenizer data/tokenizer.bin --out data/sft
 
 echo "◆ 5/6 Дообучаю (учу отвечать как ассистент)"
-./corax finetune --model models/base.bin --data data/sft --out models/chat.bin --steps "$FT_STEPS"
+FT_RESUME=""
+[ -f models/chat.bin.opt ] && [ models/chat.bin -nt models/base.bin ] && FT_RESUME="--resume"
+./corax finetune --model models/base.bin --data data/sft --out models/chat.bin --steps "$FT_STEPS" $FT_RESUME
+rm -f models/chat.bin.opt
 
 echo "◆ 6/6 Квантую ($QUANT) и проверяю скорость"
 ./corax quantize models/chat.bin "models/chat-$QUANT.bin" "$QUANT"

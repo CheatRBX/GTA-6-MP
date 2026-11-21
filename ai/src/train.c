@@ -714,7 +714,7 @@ int train_run(TrainOpts *o) {
     int T = o->seq > 0 ? o->seq : c.seq_len;
     if (T > c.seq_len) T = c.seq_len;
     int B = o->batch > 0 ? o->batch : (2048 / T > 0 ? 2048 / T : 1);
-    if (o->lr <= 0) o->lr = o->init && !o->resume ? 2e-4f : (c.dim <= 384 ? 1e-3f : 6e-4f);
+    if (o->lr <= 0) o->lr = o->init ? 2e-4f : (c.dim <= 384 ? 1e-3f : 6e-4f); /* дообучение — меньше lr, и при --resume тоже */
     if (o->warmup < 0) o->warmup = o->steps / 20 < 200 ? o->steps / 20 : 200;
 
     Data train, val;
@@ -758,7 +758,8 @@ int train_run(TrainOpts *o) {
 
     double t_start = now_sec(), t_win = t_start, t_draw = 0;
     int64_t tok_win = 0, done_tokens = 0;
-    double loss_ema = -1, tps = 0;
+    double loss_ema = -1, tps = 0, tps_best = 0, hint_time = -1e9;
+    int slow_windows = 0;
     int64_t s1 = start_step;
     for (int64_t step = start_step; step < o->steps && !g_stop; step++) {
         float lr;
@@ -793,6 +794,16 @@ int train_run(TrainOpts *o) {
         if (now - t_win > 2.0 || s1 == start_step + 1) { /* скорость по окну ~2 с */
             tps = (done_tokens - tok_win) / (now - t_win + 1e-9);
             t_win = now; tok_win = done_tokens;
+            if (s1 > start_step + 1) {
+                if (tps > tps_best) tps_best = tps;
+                slow_windows = tps < 0.6 * tps_best ? slow_windows + 1 : 0;
+                if (slow_windows == 5 && now - hint_time > 300) { /* ~10 с подряд медленно — подсказать один раз в 5 минут */
+                    hint_time = now;
+                    live_clear(live);
+                    cprintf("  \033[33m⚠ скорость упала с %.0f до %.0f ток/с: Termux не на весь экран / свёрнут (Android отдаёт ядра"
+                            " другому приложению) или телефон перегрелся. Открой Termux на весь экран.\033[0m\n", tps_best, tps);
+                }
+            }
         }
         double per_step = (now - t_start) / (double)(s1 - start_step);
         char eta[32];
