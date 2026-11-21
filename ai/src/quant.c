@@ -17,6 +17,7 @@ int quantize_run(const char *in, const char *out, const char *type) {
     const Config *c = &mf.c;
     char tmp[1100];
     snprintf(tmp, sizeof tmp, "%s.tmp", out);
+    ensure_parent_dir(out);
     FILE *f = fopen(tmp, "wb");
     if (!f) die("не создать %s", tmp);
     FileHeader h = mf.h;

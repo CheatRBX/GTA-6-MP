@@ -15,6 +15,8 @@ ifeq ($(UNAME_M),aarch64)
   else
     ARCHFLAGS ?= -march=armv8.2-a+dotprod+fp16
   endif
+else ifeq ($(UNAME_M),arm64)
+  ARCHFLAGS ?= -mcpu=apple-m1
 else ifeq ($(UNAME_M),x86_64)
   ARCHFLAGS ?= -march=native
 endif

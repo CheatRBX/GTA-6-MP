@@ -32,6 +32,17 @@ void *xcalloc(size_t n) {
     return p;
 }
 
+void ensure_parent_dir(const char *path) {
+    char buf[1024];
+    snprintf(buf, sizeof buf, "%s", path);
+    for (char *p = buf + 1; *p; p++) {
+        if (*p != '/') continue;
+        *p = 0;
+        mkdir(buf, 0755); /* уже есть — не страшно */
+        *p = '/';
+    }
+}
+
 double now_sec(void) {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);

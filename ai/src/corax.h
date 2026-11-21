@@ -101,6 +101,7 @@ void die(const char *fmt, ...) __attribute__((noreturn, format(printf, 1, 2)));
 void *xmalloc(size_t n);         /* выровненный malloc с проверкой */
 void *xcalloc(size_t n);
 double now_sec(void);
+void ensure_parent_dir(const char *path); /* mkdir -p для папки файла */
 const char *qtype_name(int qt);
 extern int g_color;                 /* 0 — без ANSI-цветов (не терминал / NO_COLOR) */
 void cprintf(const char *fmt, ...) __attribute__((format(printf, 1, 2))); /* printf с вырезанием цветов */

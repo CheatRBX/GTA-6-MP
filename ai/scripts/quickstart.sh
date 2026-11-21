@@ -10,9 +10,10 @@ FT_STEPS=${FT_STEPS:-300}
 QUANT=${QUANT:-q8}
 
 [ -x ./corax ] || make
+mkdir -p data/raw models
 command -v termux-wake-lock >/dev/null 2>&1 && termux-wake-lock || true
 
-if ! ls data/raw/*.txt data/raw/*.jsonl >/dev/null 2>&1; then
+if [ -z "$(find data/raw -maxdepth 1 \( -name '*.txt' -o -name '*.jsonl' \) 2>/dev/null | head -n 1)" ]; then
     echo "◆ 1/6 Скачиваю данные"
     bash scripts/get_data.sh ru-stories
 fi

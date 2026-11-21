@@ -506,6 +506,7 @@ void save_model_f32(const char *path, const Config *c, const float *params, cons
                     int64_t steps, int64_t tokens) {
     char tmp[1100];
     snprintf(tmp, sizeof tmp, "%s.tmp", path);
+    ensure_parent_dir(path);
     FILE *f = fopen(tmp, "wb");
     if (!f) die("не создать %s", tmp);
     FileHeader h;
