@@ -6,7 +6,7 @@ set -e
 cd "$(dirname "$0")/.."
 PRESET=${PRESET:-nano}
 STEPS=${STEPS:-2000}
-FT_STEPS=${FT_STEPS:-300}
+FT_STEPS=${FT_STEPS:-200}
 QUANT=${QUANT:-q8}
 
 [ -x ./corax ] || make

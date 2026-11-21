@@ -411,7 +411,7 @@ static int cmd_chat(Args *a) {
         ids[n++] = tk->special[SP_ASSISTANT];
         int reserve = ss.s.seq_len / 4 > 32 ? ss.s.seq_len / 4 : 32;
         if (ss.pos + n + reserve > ss.s.seq_len) {
-            printf("%s  ⎿ контекст заполнен — начинаю новый (системная подсказка сохранена)%s\n", C_DIM, C_RESET);
+            printf("%s  ⎿ контекст заполнен — начинаю новый%s%s\n", C_DIM, ss.system[0] ? " (системная подсказка сохранена)" : "", C_RESET);
             chat_reset(&ss, 0);
             if (ss.pos + n + reserve > ss.s.seq_len) { /* слишком длинное сообщение: оставляем хвост */
                 int keep = ss.s.seq_len - ss.pos - reserve - 3;
