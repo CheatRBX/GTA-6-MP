@@ -445,7 +445,7 @@ float *forward(const Model *m, State *s, int token, int pos) {
 
 /* ================= сэмплирование ================= */
 void sampler_default(Sampler *sp) {
-    sp->temperature = 0.8f;
+    sp->temperature = 0.7f;
     sp->top_p = 0.9f;
     sp->top_k = 40;
     sp->rep_penalty = 1.1f;
@@ -479,25 +479,41 @@ int sample_token(const Sampler *sp, uint64_t *rng, float *lg, int V, const int *
     static PI *buf = NULL;
     static int cap = 0;
     if (cap < V) { free(buf); buf = xmalloc(sizeof(PI) * V); cap = V; }
-    float mx = lg[0];
-    for (int i = 1; i < V; i++) if (lg[i] > mx) mx = lg[i];
-    float sum = 0, inv_t = 1.0f / sp->temperature;
-    for (int i = 0; i < V; i++) { buf[i].p = expf((lg[i] - mx) * inv_t); buf[i].i = i; sum += buf[i].p; }
+    float inv_t = 1.0f / sp->temperature;
     float top_p = sp->top_p > 0 && sp->top_p < 1.0f ? sp->top_p : 1.0f;
-    float cutoff = top_p < 1.0f ? (1.0f - top_p) / (V - 1) * sum : 0.0f;
     int n = 0;
-    for (int i = 0; i < V; i++) if (buf[i].p >= cutoff) buf[n++] = buf[i];
-    qsort(buf, n, sizeof(PI), cmp_pi);
-    if (sp->top_k > 0 && n > sp->top_k) n = sp->top_k;
+    if (sp->top_k > 0 && sp->top_k < V) {
+        /* Быстро: один проход, держим k лучших в отсортированном массиве (без сортировки всего словаря). */
+        int k = sp->top_k;
+        for (int i = 0; i < V; i++) {
+            float v = lg[i];
+            if (n == k && v <= buf[k - 1].p) continue;
+            int j = n < k ? n++ : k - 1;
+            while (j > 0 && buf[j - 1].p < v) { buf[j] = buf[j - 1]; j--; }
+            buf[j].p = v; buf[j].i = i;
+        }
+        float mx = buf[0].p;
+        for (int j = 0; j < n; j++) buf[j].p = expf((buf[j].p - mx) * inv_t);
+    } else {
+        float mx = lg[0];
+        for (int i = 1; i < V; i++) if (lg[i] > mx) mx = lg[i];
+        float sum = 0;
+        for (int i = 0; i < V; i++) { buf[i].p = expf((lg[i] - mx) * inv_t); buf[i].i = i; sum += buf[i].p; }
+        float cutoff = top_p < 1.0f ? (1.0f - top_p) / (V - 1) * sum : 0.0f;
+        for (int i = 0; i < V; i++) if (buf[i].p >= cutoff) buf[n++] = buf[i];
+        qsort(buf, n, sizeof(PI), cmp_pi);
+    }
+    float sum = 0;
+    for (int j = 0; j < n; j++) sum += buf[j].p;
     float cum = 0;
     int last = n - 1;
-    for (int i = 0; i < n; i++) {
-        cum += buf[i].p;
-        if (cum >= top_p * sum) { last = i; break; }
+    for (int j = 0; j < n; j++) {
+        cum += buf[j].p;
+        if (cum >= top_p * sum) { last = j; break; }
     }
     float total = 0;
-    for (int i = 0; i <= last; i++) total += buf[i].p;
+    for (int j = 0; j <= last; j++) total += buf[j].p;
     float r = rng_f32(rng) * total, acc = 0;
-    for (int i = 0; i <= last; i++) { acc += buf[i].p; if (r < acc) return buf[i].i; }
+    for (int j = 0; j <= last; j++) { acc += buf[j].p; if (r < acc) return buf[j].i; }
     return buf[last].i;
 }

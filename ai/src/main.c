@@ -214,7 +214,7 @@ static void status(Session *ss, const char *what, double tps) {
     bar_draw(buf);
 }
 
-static const char *SPIN[] = {"✻", "✶", "✷", "✸", "✹", "✺"};
+static const char *SPIN[] = {"◐", "◓", "◑", "◒"};
 
 /* Подаёт токены с индикатором «читаю запрос». Возвращает время. */
 static double feed_tokens(Session *ss, const int *ids, int n, int show) {
@@ -225,7 +225,7 @@ static double feed_tokens(Session *ss, const int *ids, int n, int show) {
         double now = now_sec();
         if (show && now - last > 0.08) {
             last = now;
-            printf("\r\033[K%s%s Читаю запрос… %d/%d токенов%s", C_ACCENT, SPIN[(int)(now * 10) % 6], i + 1, n, C_RESET);
+            printf("\r\033[K%s%s Читаю запрос… %d/%d токенов%s", C_ACCENT, SPIN[(int)(now * 10) % 4], i + 1, n, C_RESET);
             fflush(stdout);
             status(ss, "читаю запрос", (i + 1) / (now - t0 + 1e-9));
         }
@@ -270,10 +270,10 @@ static void print_stats(Session *ss, int ntok, double gen_t, int nprompt, double
     status(ss, "жду ввода", tps);
     if (!ss->stats) return;
     if (g_cols >= 64)
-        printf("%s  ⎿ %d ток · %s%.1f ток/с%s%s · чтение %d ток за %.2fс · контекст %d/%d%s\n", C_DIM, ntok, C_GREEN, tps,
+        printf("%s  └ %d ток · %s%.1f ток/с%s%s · чтение %d ток за %.2fс · контекст %d/%d%s\n", C_DIM, ntok, C_GREEN, tps,
                C_RESET, C_DIM, nprompt, pre_t, ss->pos, ss->s.seq_len, C_RESET);
     else
-        printf("%s  ⎿ %d ток · %s%.0f ток/с%s%s · %d/%d%s\n", C_DIM, ntok, C_GREEN, tps, C_RESET, C_DIM, ss->pos,
+        printf("%s  └ %d ток · %s%.0f ток/с%s%s · %d/%d%s\n", C_DIM, ntok, C_GREEN, tps, C_RESET, C_DIM, ss->pos,
                ss->s.seq_len, C_RESET);
 }
 
@@ -390,19 +390,19 @@ static int cmd_chat(Args *a) {
             if (arg) { *arg++ = 0; while (*arg == ' ') arg++; }
             if (!strcmp(line, "/exit") || !strcmp(line, "/quit") || !strcmp(line, "/q")) break;
             else if (!strcmp(line, "/help")) chat_help();
-            else if (!strcmp(line, "/reset")) { chat_reset(&ss, 1); printf("%s  ⎿ контекст очищен%s\n", C_DIM, C_RESET); }
+            else if (!strcmp(line, "/reset")) { chat_reset(&ss, 1); printf("%s  └ контекст очищен%s\n", C_DIM, C_RESET); }
             else if (!strcmp(line, "/system")) {
                 snprintf(ss.system, sizeof ss.system, "%s", arg ? arg : "");
                 chat_reset(&ss, 1);
-                printf("%s  ⎿ системная подсказка %s, контекст очищен%s\n", C_DIM, ss.system[0] ? "задана" : "убрана", C_RESET);
+                printf("%s  └ системная подсказка %s, контекст очищен%s\n", C_DIM, ss.system[0] ? "задана" : "убрана", C_RESET);
             }
-            else if (!strcmp(line, "/temp") && arg) { ss.sp.temperature = (float)atof(arg); printf("%s  ⎿ температура %.2f%s\n", C_DIM, ss.sp.temperature, C_RESET); }
-            else if (!strcmp(line, "/topp") && arg) { ss.sp.top_p = (float)atof(arg); printf("%s  ⎿ top-p %.2f%s\n", C_DIM, ss.sp.top_p, C_RESET); }
-            else if (!strcmp(line, "/topk") && arg) { ss.sp.top_k = atoi(arg); printf("%s  ⎿ top-k %d%s\n", C_DIM, ss.sp.top_k, C_RESET); }
-            else if (!strcmp(line, "/rep") && arg) { ss.sp.rep_penalty = (float)atof(arg); printf("%s  ⎿ штраф повторов %.2f%s\n", C_DIM, ss.sp.rep_penalty, C_RESET); }
-            else if (!strcmp(line, "/stats")) { ss.stats = !ss.stats; printf("%s  ⎿ статистика %s%s\n", C_DIM, ss.stats ? "вкл" : "выкл", C_RESET); }
+            else if (!strcmp(line, "/temp") && arg) { ss.sp.temperature = (float)atof(arg); printf("%s  └ температура %.2f%s\n", C_DIM, ss.sp.temperature, C_RESET); }
+            else if (!strcmp(line, "/topp") && arg) { ss.sp.top_p = (float)atof(arg); printf("%s  └ top-p %.2f%s\n", C_DIM, ss.sp.top_p, C_RESET); }
+            else if (!strcmp(line, "/topk") && arg) { ss.sp.top_k = atoi(arg); printf("%s  └ top-k %d%s\n", C_DIM, ss.sp.top_k, C_RESET); }
+            else if (!strcmp(line, "/rep") && arg) { ss.sp.rep_penalty = (float)atof(arg); printf("%s  └ штраф повторов %.2f%s\n", C_DIM, ss.sp.rep_penalty, C_RESET); }
+            else if (!strcmp(line, "/stats")) { ss.stats = !ss.stats; printf("%s  └ статистика %s%s\n", C_DIM, ss.stats ? "вкл" : "выкл", C_RESET); }
             else if (!strcmp(line, "/info")) print_model_card(&ss.m, path);
-            else printf("%s  ⎿ неизвестная команда, /help — список%s\n", C_YELLOW, C_RESET);
+            else printf("%s  └ неизвестная команда, /help — список%s\n", C_YELLOW, C_RESET);
             continue;
         }
         int nu = tok_encode(tk, line, ids + 1, ss.s.seq_len);
@@ -412,7 +412,7 @@ static int cmd_chat(Args *a) {
         ids[n++] = tk->special[SP_ASSISTANT];
         int reserve = ss.s.seq_len / 4 > 32 ? ss.s.seq_len / 4 : 32;
         if (ss.pos + n + reserve > ss.s.seq_len) {
-            printf("%s  ⎿ контекст заполнен — начинаю новый%s%s\n", C_DIM, ss.system[0] ? " (системная подсказка сохранена)" : "", C_RESET);
+            printf("%s  └ контекст заполнен — начинаю новый%s%s\n", C_DIM, ss.system[0] ? " (системная подсказка сохранена)" : "", C_RESET);
             chat_reset(&ss, 0);
             if (ss.pos + n + reserve > ss.s.seq_len) { /* слишком длинное сообщение: оставляем хвост */
                 int keep = ss.s.seq_len - ss.pos - reserve - 3;
@@ -421,11 +421,11 @@ static int cmd_chat(Args *a) {
                 n = keep + 1;
                 ids[n++] = tk->special[SP_EOS];
                 ids[n++] = tk->special[SP_ASSISTANT];
-                printf("%s  ⎿ сообщение обрезано до %d токенов%s\n", C_YELLOW, keep, C_RESET);
+                printf("%s  └ сообщение обрезано до %d токенов%s\n", C_YELLOW, keep, C_RESET);
             }
         }
         double pre = feed_tokens(&ss, ids, n, 1);
-        printf("%s⏺%s ", C_ACCENT, C_RESET);
+        printf("%s●%s ", C_ACCENT, C_RESET);
         fflush(stdout);
         double gt;
         int ng = generate(&ss, 1, &gt);

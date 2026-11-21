@@ -606,7 +606,7 @@ static void on_stop(int sig) {
     (void)sig;
     if (g_stop) _exit(130); /* второй Ctrl+C — выйти сразу */
     g_stop = 1;
-    const char msg[] = "\n  ⏸ сохраняю после текущего шага… (ещё раз Ctrl+C — выйти без сохранения)\n";
+    const char msg[] = "\n  ■ сохраняю после текущего шага… (ещё раз Ctrl+C — выйти без сохранения)\n";
     ssize_t r = write(STDOUT_FILENO, msg, sizeof msg - 1);
     (void)r;
 }
@@ -853,7 +853,7 @@ int train_run(TrainOpts *o) {
             save_model_f32(o->out, &c, n.p, tokblob, toksize, base_steps + s1, tokens_seen);
             save_opt(o->out, &n, s1, tokens_seen, rng);
         }
-        cprintf("\033[1;33m⏸ пауза на шаге %lld/%d — всё сохранено в %s\033[0m\n", (long long)s1, o->steps, o->out);
+        cprintf("\033[1;33m■ пауза на шаге %lld/%d — всё сохранено в %s\033[0m\n", (long long)s1, o->steps, o->out);
         cprintf("  продолжить: та же команда с --resume (quickstart.sh продолжит сам)\n");
         cprintf("  попробовать уже сейчас: ./corax gen -m %s -p \"Однажды\"\n", o->out);
         fflush(stdout);

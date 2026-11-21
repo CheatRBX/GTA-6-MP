@@ -15,7 +15,7 @@
 #endif
 
 #define MAX_CPUS 64
-#define SPIN_LIMIT 200000
+#define SPIN_SEC 0.02 /* сколько ждать новую работу активно, прежде чем уснуть */
 
 static struct {
     int n;                 /* потоков всего, включая главный */
@@ -138,8 +138,14 @@ static void *worker(void *arg) {
     int seen = P.start_gen;
     for (;;) {
         int g, spins = 0;
+        double t0 = 0;
         while ((g = atomic_load(&P.gen)) == seen) {
-            if (++spins < SPIN_LIMIT) { cpu_relax(); continue; }
+            /* Ждём активно ~20 мс: между токенами (сэмплирование, вывод) потоки не засыпают.
+             * Время проверяем редко — сами часы недешёвые. */
+            if ((++spins & 1023) != 0) { cpu_relax(); continue; }
+            double now = now_sec();
+            if (t0 == 0) t0 = now;
+            if (now - t0 < SPIN_SEC) continue;
             pthread_mutex_lock(&P.mu);
             atomic_fetch_add(&P.sleepers, 1);
             while ((g = atomic_load(&P.gen)) == seen) pthread_cond_wait(&P.cv, &P.mu);
