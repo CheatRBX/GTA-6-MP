@@ -1,0 +1,12 @@
+# сборка
+corax
+corax-debug
+corax-arm-*
+# данные и модели (большие, у каждого свои)
+data/raw/
+data/*.bin
+data/*.mask
+data/*.idx
+models/
+*.opt
+*.tmp
