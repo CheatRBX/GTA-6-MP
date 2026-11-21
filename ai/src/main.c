@@ -206,7 +206,7 @@ static void status(Session *ss, const char *what, double tps) {
     if (!g_bar) return;
     char buf[512];
     if (g_cols >= 64)
-        snprintf(buf, sizeof buf, "◆ Corax · %.0fM · %s · %d потоков │ %s │ %.1f ток/с │ контекст %d/%d",
+        snprintf(buf, sizeof buf, "◆ Corax · %.0fM · %s · потоков %d │ %s │ %.1f ток/с │ контекст %d/%d",
                  params_count(&ss->m.c) / 1e6, qtype_name(ss->m.qtype), pool_size(), what, tps, ss->pos, ss->s.seq_len);
     else
         snprintf(buf, sizeof buf, "◆ %s │ %.0f ток/с │ %d/%d", what, tps, ss->pos, ss->s.seq_len);

@@ -79,20 +79,28 @@ int pool_default_threads(void) {
     return big;
 }
 
+static const char *cores_word(int n) {
+    int a = n % 100, b = n % 10;
+    if (a >= 11 && a <= 14) return "ядер";
+    if (b == 1) return "ядро";
+    if (b >= 2 && b <= 4) return "ядра";
+    return "ядер";
+}
+
 const char *pool_cpu_info(void) {
     detect_cpus();
     if (!P.have_freq) {
-        snprintf(P.info, sizeof P.info, "%d ядер (частоты недоступны)", P.ncpu);
+        snprintf(P.info, sizeof P.info, "%d %s", P.ncpu, cores_word(P.ncpu));
         return P.info;
     }
     /* сгруппировать по частоте: "1x2.63 + 3x2.40 + 4x1.80 ГГц" */
-    int pos = snprintf(P.info, sizeof P.info, "%d ядер: ", P.ncpu);
+    int pos = snprintf(P.info, sizeof P.info, "%d %s: ", P.ncpu, cores_word(P.ncpu));
     int i = 0;
     while (i < P.ncpu && pos < (int)sizeof P.info - 24) {
         long f = P.freq[P.order[i]];
         int cnt = 0;
         while (i < P.ncpu && P.freq[P.order[i]] == f) { cnt++; i++; }
-        pos += snprintf(P.info + pos, sizeof P.info - pos, "%s%dx%.2f", pos > 12 ? " + " : "", cnt, f / 1e6);
+        pos += snprintf(P.info + pos, sizeof P.info - pos, "%s%d×%.2f", P.info[pos - 2] == ':' ? "" : " + ", cnt, f / 1e6);
     }
     snprintf(P.info + pos, sizeof P.info - pos, " ГГц");
     return P.info;

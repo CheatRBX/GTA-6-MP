@@ -741,9 +741,12 @@ int train_run(TrainOpts *o) {
             char eta[32], el[32];
             fmt_time(per_step * (o->steps - s1), eta, sizeof eta);
             fmt_time(now - t_start, el, sizeof el);
-            cprintf("  шаг \033[1m%5lld\033[0m/%d  loss \033[1;36m%.4f\033[0m (ср %.3f)  lr %.2e  |g| %.2f  "
-                   "\033[32m%.0f ток/с\033[0m  прошло %s  осталось %s\n",
-                   (long long)s1, o->steps, loss, loss_ema, lr, gn, tps, el, eta);
+            char bar[64] = "";
+            int fill = (int)(12.0 * s1 / o->steps), bl = 0;
+            for (int i = 0; i < 12; i++) bl += snprintf(bar + bl, sizeof bar - bl, "%s", i < fill ? "█" : "░");
+            cprintf("  \033[38;5;141m%s\033[0m шаг \033[1m%lld\033[0m/%d  loss \033[1;36m%.4f\033[0m (ср %.3f)  lr %.1e  |g| %.2f  "
+                    "\033[32m%.0f ток/с\033[0m  прошло %s  осталось %s\n",
+                    bar, (long long)s1, o->steps, loss, loss_ema, lr, gn, tps, el, eta);
             fflush(stdout);
             t_last = now; tok_last = done_tokens;
         }
