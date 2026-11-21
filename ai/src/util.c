@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <dirent.h>
+#include <errno.h>
 
 void die(const char *fmt, ...) {
     va_list ap;
@@ -123,10 +125,40 @@ void config_print(const Config *c, FILE *f) {
     fprintf(f, "  параметров: %.2f млн\n", params_count(c) / 1e6);
 }
 
+/* Понятное сообщение, когда модели нет: что лежит рядом и что делать. */
+static void model_missing(const char *path) {
+    char dir[1024];
+    snprintf(dir, sizeof dir, "%s", path);
+    char *slash = strrchr(dir, '/');
+    if (slash) *slash = 0; else snprintf(dir, sizeof dir, ".");
+    fprintf(stderr, "\nМодели «%s» пока нет.\n", path);
+    DIR *d = opendir(dir);
+    int found = 0, has_base = 0;
+    if (d) {
+        struct dirent *e;
+        while ((e = readdir(d))) {
+            size_t l = strlen(e->d_name);
+            if (l > 4 && strcmp(e->d_name + l - 4, ".bin") == 0) {
+                if (!found) fprintf(stderr, "  есть в %s/:", dir);
+                fprintf(stderr, "%s %s", found ? "," : "", e->d_name);
+                found++;
+                if (!strcmp(e->d_name, "base.bin")) has_base = 1;
+            }
+        }
+        closedir(d);
+    }
+    fprintf(stderr, found ? "\n" : "  в папке %s моделей ещё нет.\n", dir);
+    fprintf(stderr, "\nЧат-модель появляется в самом конце quickstart.sh (обучение → дообучение → сжатие).\n");
+    fprintf(stderr, "Если обучение прервалось — просто запусти снова: bash scripts/quickstart.sh (продолжит с сохранения).\n");
+    if (has_base) fprintf(stderr, "Уже сейчас можно попробовать базовую модель: ./corax gen -m %s/base.bin -p \"Однажды\"\n", dir);
+    exit(1);
+}
+
 void model_open(ModelFile *mf, const char *path) {
     memset(mf, 0, sizeof(*mf));
     mf->fd = open(path, O_RDONLY);
-    if (mf->fd < 0) die("не открыть модель %s", path);
+    if (mf->fd < 0 && errno == ENOENT) model_missing(path);
+    if (mf->fd < 0) die("не открыть модель %s: %s", path, strerror(errno));
     struct stat st;
     if (fstat(mf->fd, &st) != 0) die("stat %s", path);
     mf->size = (size_t)st.st_size;

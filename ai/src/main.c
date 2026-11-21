@@ -3,6 +3,7 @@
 #include "model.h"
 #include "pool.h"
 #include "train.h"
+#include "gemm.h"
 #include <errno.h>
 #include <math.h>
 #include <signal.h>
@@ -472,6 +473,37 @@ static void fill_train_opts(Args *a, TrainOpts *o, int finetune) {
     if (o->log_every < 1) o->log_every = 1;
 }
 
+/* Обучение: замеряем умножение матриц на «только больших ядрах» и на «всех ядрах», берём быстрее. */
+static double probe_gflops(int nt, float *A, float *B, float *C) {
+    pool_init(nt);
+    gemm_nt(C, A, B, 512, 512, 512, 0); /* прогрев */
+    double best = 1e30;
+    for (int r = 0; r < 3; r++) {
+        double t0 = now_sec();
+        gemm_nt(C, A, B, 512, 512, 512, 0);
+        gemm_nt(C, A, B, 512, 512, 512, 1);
+        double dt = now_sec() - t0;
+        if (dt < best) best = dt;
+    }
+    return 2.0 * 2 * 512.0 * 512 * 512 / best / 1e9;
+}
+
+static int pick_train_threads(void) {
+    int big = pool_default_threads();
+    long online = sysconf(_SC_NPROCESSORS_ONLN);
+    int all = online > 16 ? 16 : (online < 1 ? 1 : (int)online);
+    if (all <= big) return all;
+    float *A = xmalloc(4 * 512 * 512), *B = xmalloc(4 * 512 * 512), *C = xmalloc(4 * 512 * 512);
+    uint64_t r = 1;
+    for (int i = 0; i < 512 * 512; i++) { A[i] = rng_f32(&r) - 0.5f; B[i] = rng_f32(&r) - 0.5f; }
+    double g_big = probe_gflops(big, A, B, C), g_all = probe_gflops(all, A, B, C);
+    free(A); free(B); free(C);
+    int pick = g_all > g_big * 1.05 ? all : big;
+    cprintf("  \033[2mподбор потоков: %d больших ядер — %.0f GFLOPS, все %d — %.0f GFLOPS → беру %d\033[0m\n",
+            big, g_big, all, g_all, pick);
+    return pick;
+}
+
 static void usage(void) {
     printf("%s◆ Corax LM%s — своя нейросеть с нуля\n\n", C_ACCENT, C_RESET);
     printf("  corax chat     -m МОДЕЛЬ [-t потоки] [--temp 0.8] [--system \"...\"]   чат\n");
@@ -505,8 +537,7 @@ int main(int argc, char **argv) {
         TrainOpts o;
         fill_train_opts(&a, &o, !strcmp(cmd, "finetune"));
         int t = arg_int(&a, "-t", arg_int(&a, "--threads", 0));
-        long online = sysconf(_SC_NPROCESSORS_ONLN);
-        pool_init(t > 0 ? t : (int)(online > 0 ? (online > 16 ? 16 : online) : 1)); /* обучение: все ядра */
+        pool_init(t > 0 ? t : pick_train_threads());
         return train_run(&o);
     }
     if (!strcmp(cmd, "_fwdtest")) { /* логиты на каждой позиции — для тестов */

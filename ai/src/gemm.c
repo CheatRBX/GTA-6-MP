@@ -1,18 +1,171 @@
-/* Умножение матриц для обучения: микроядро 4x4 на векторных расширениях GCC/Clang
- * (на ARM это NEON, на x86 — SSE/AVX), блокировка по кешу, пул потоков. */
+/* Умножение матриц для обучения (как в BLAS): упаковка блоков + микроядро 8x8.
+ * Транспонирование встроено в упаковку — лишних проходов по памяти нет.
+ * ARM: NEON fmla по элементу; x86/прочие: векторные расширения GCC/Clang. */
 #include "corax.h"
 #include "gemm.h"
 #include "pool.h"
+#include <stdlib.h>
 #include <string.h>
+#if defined(__aarch64__)
+#include <arm_neon.h>
+#endif
 
 typedef float v4f __attribute__((vector_size(16)));
 static inline v4f ldv(const float *p) { v4f v; memcpy(&v, p, 16); return v; }
 static inline float hsum(v4f v) { return (v[0] + v[1]) + (v[2] + v[3]); }
 
-#define MB 16   /* строк C на задачу */
-#define NB 64   /* столбцов C на задачу */
-#define KB 512  /* блок по K */
+/* ======================= упакованный GEMM ======================= */
+#define PK_KB 256   /* блок по K: полоса 8xKB = 8 КБ, влезает в L1 */
+#define PK_MAXB 64  /* максимум строк/столбцов C в задаче */
+static __thread float *pk_buf = NULL;
 
+/* Упаковка 8-строчных полос: dst[полоса][k][0..7].
+ * trans=0: src — [rows][ld] (строка непрерывна по k); trans=1: src — [k][ld] (непрерывна по строкам). */
+static void pack8(float *dst, const float *src, int ld, int r0, int rows, int k0, int kl, int trans) {
+    for (int s = 0; s < rows; s += 8) {
+        float *d = dst + (size_t)s * kl;
+        int r = rows - s < 8 ? rows - s : 8;
+        if (trans) {
+            const float *p = src + (size_t)k0 * ld + r0 + s;
+            if (r == 8) {
+                for (int k = 0; k < kl; k++, p += ld) memcpy(d + k * 8, p, 32);
+            } else {
+                for (int k = 0; k < kl; k++, p += ld)
+                    for (int i = 0; i < 8; i++) d[k * 8 + i] = i < r ? p[i] : 0.0f;
+            }
+        } else {
+            for (int i = 0; i < 8; i++) {
+                if (i < r) {
+                    const float *p = src + (size_t)(r0 + s + i) * ld + k0;
+                    for (int k = 0; k < kl; k++) d[k * 8 + i] = p[k];
+                } else {
+                    for (int k = 0; k < kl; k++) d[k * 8 + i] = 0.0f;
+                }
+            }
+        }
+    }
+}
+
+static void store8x8(float *C, int ldc, int acc, int mr, int nr, float t[8][8]) {
+    for (int i = 0; i < mr; i++) {
+        float *c = C + (size_t)i * ldc;
+        if (acc) for (int q = 0; q < nr; q++) c[q] += t[i][q];
+        else for (int q = 0; q < nr; q++) c[q] = t[i][q];
+    }
+}
+
+#if defined(__aarch64__)
+#define FL(c, b, a, l) c = vfmaq_laneq_f32(c, b, a, l)
+static void kern8x8p(const float *Ap, const float *Bp, int kl, float *C, int ldc, int acc, int mr, int nr) {
+    float32x4_t c00 = vdupq_n_f32(0), c01 = c00, c10 = c00, c11 = c00, c20 = c00, c21 = c00, c30 = c00, c31 = c00;
+    float32x4_t c40 = c00, c41 = c00, c50 = c00, c51 = c00, c60 = c00, c61 = c00, c70 = c00, c71 = c00;
+    for (int k = 0; k < kl; k++) {
+        float32x4_t a0 = vld1q_f32(Ap), a1 = vld1q_f32(Ap + 4), b0 = vld1q_f32(Bp), b1 = vld1q_f32(Bp + 4);
+        Ap += 8; Bp += 8;
+        FL(c00, b0, a0, 0); FL(c01, b1, a0, 0); FL(c10, b0, a0, 1); FL(c11, b1, a0, 1);
+        FL(c20, b0, a0, 2); FL(c21, b1, a0, 2); FL(c30, b0, a0, 3); FL(c31, b1, a0, 3);
+        FL(c40, b0, a1, 0); FL(c41, b1, a1, 0); FL(c50, b0, a1, 1); FL(c51, b1, a1, 1);
+        FL(c60, b0, a1, 2); FL(c61, b1, a1, 2); FL(c70, b0, a1, 3); FL(c71, b1, a1, 3);
+    }
+    float32x4_t r[16] = {c00, c01, c10, c11, c20, c21, c30, c31, c40, c41, c50, c51, c60, c61, c70, c71};
+    if (mr == 8 && nr == 8) {
+        for (int i = 0; i < 8; i++) {
+            float *c = C + (size_t)i * ldc;
+            float32x4_t lo = r[2 * i], hi = r[2 * i + 1];
+            if (acc) { lo = vaddq_f32(lo, vld1q_f32(c)); hi = vaddq_f32(hi, vld1q_f32(c + 4)); }
+            vst1q_f32(c, lo);
+            vst1q_f32(c + 4, hi);
+        }
+    } else {
+        float t[8][8];
+        for (int i = 0; i < 8; i++) { vst1q_f32(t[i], r[2 * i]); vst1q_f32(t[i] + 4, r[2 * i + 1]); }
+        store8x8(C, ldc, acc, mr, nr, t);
+    }
+}
+#else
+#define FB(c0, c1, i) { float a = Ap[i]; c0 += a * b0; c1 += a * b1; }
+static void kern8x8p(const float *Ap, const float *Bp, int kl, float *C, int ldc, int acc, int mr, int nr) {
+    v4f c00 = {0}, c01 = {0}, c10 = {0}, c11 = {0}, c20 = {0}, c21 = {0}, c30 = {0}, c31 = {0};
+    v4f c40 = {0}, c41 = {0}, c50 = {0}, c51 = {0}, c60 = {0}, c61 = {0}, c70 = {0}, c71 = {0};
+    for (int k = 0; k < kl; k++) {
+        v4f b0 = ldv(Bp), b1 = ldv(Bp + 4);
+        FB(c00, c01, 0) FB(c10, c11, 1) FB(c20, c21, 2) FB(c30, c31, 3)
+        FB(c40, c41, 4) FB(c50, c51, 5) FB(c60, c61, 6) FB(c70, c71, 7)
+        Ap += 8; Bp += 8;
+    }
+    v4f r[8][2] = {{c00, c01}, {c10, c11}, {c20, c21}, {c30, c31}, {c40, c41}, {c50, c51}, {c60, c61}, {c70, c71}};
+    float t[8][8];
+    memcpy(t, r, sizeof t);
+    store8x8(C, ldc, acc, mr, nr, t);
+}
+#endif
+
+typedef struct { float *C; const float *A, *B; int M, N, K, acc, ta, tb, mb, nb, nbn; } GemmJob;
+
+static void gemm_task(void *ctx, int t0, int t1) {
+    GemmJob *j = ctx;
+    if (!pk_buf) pk_buf = xmalloc(sizeof(float) * 2 * PK_MAXB * PK_KB);
+    float *Ap = pk_buf, *Bp = pk_buf + PK_MAXB * PK_KB;
+    int lda = j->ta ? j->M : j->K, ldb = j->tb ? j->N : j->K;
+    for (int t = t0; t < t1; t++) {
+        int m0 = (t / j->nbn) * j->mb, n0 = (t % j->nbn) * j->nb;
+        int m1 = m0 + j->mb < j->M ? m0 + j->mb : j->M;
+        int n1 = n0 + j->nb < j->N ? n0 + j->nb : j->N;
+        for (int k0 = 0; k0 < j->K; k0 += PK_KB) {
+            int kl = j->K - k0 < PK_KB ? j->K - k0 : PK_KB;
+            int acc = j->acc || k0 > 0;
+            pack8(Ap, j->A, lda, m0, m1 - m0, k0, kl, j->ta);
+            pack8(Bp, j->B, ldb, n0, n1 - n0, k0, kl, j->tb);
+            for (int m = m0; m < m1; m += 8)
+                for (int n = n0; n < n1; n += 8)
+                    kern8x8p(Ap + (size_t)(m - m0) * kl, Bp + (size_t)(n - n0) * kl, kl,
+                             j->C + (size_t)m * j->N + n, j->N, acc, m1 - m < 8 ? m1 - m : 8, n1 - n < 8 ? n1 - n : 8);
+        }
+    }
+}
+
+void gemm(float *C, const float *A, const float *B, int M, int N, int K, int acc, int ta, int tb) {
+    if (M <= 0 || N <= 0) return;
+    if (K <= 0) { if (!acc) memset(C, 0, sizeof(float) * (size_t)M * N); return; }
+    /* крупные блоки, если задач хватает на все потоки; иначе мельче — для баланса big.LITTLE */
+    int b = ((M + 63) / 64) * ((N + 63) / 64) >= 3 * pool_size() ? 64 : 32;
+    GemmJob j = {C, A, B, M, N, K, acc, ta, tb, b, b, (N + b - 1) / b};
+    pool_run(gemm_task, &j, ((M + b - 1) / b) * j.nbn, 1);
+}
+
+void gemm_nt(float *C, const float *A, const float *B, int M, int N, int K, int acc) {
+    gemm(C, A, B, M, N, K, acc, 0, 0);
+}
+
+/* ======================= транспонирование ======================= */
+typedef struct { float *dst; const float *src; int R, C; } TrJob;
+static void tr_task(void *ctx, int b0, int b1) {
+    TrJob *j = ctx;
+    for (int b = b0; b < b1; b++) {
+        int r0 = b * 32, r1 = r0 + 32 < j->R ? r0 + 32 : j->R;
+        for (int c0 = 0; c0 < j->C; c0 += 32) {
+            int c1 = c0 + 32 < j->C ? c0 + 32 : j->C;
+            for (int r = r0; r < r1; r++)
+                for (int c = c0; c < c1; c++) j->dst[(size_t)c * j->R + r] = j->src[(size_t)r * j->C + c];
+        }
+    }
+}
+
+void transpose(float *dst, const float *src, int R, int C) {
+    TrJob j = {dst, src, R, C};
+    pool_run(tr_task, &j, (R + 31) / 32, 1);
+}
+
+void transpose_st(float *dst, int ldd, const float *src, int lds, int R, int C) {
+    for (int r0 = 0; r0 < R; r0 += 16)
+        for (int c0 = 0; c0 < C; c0 += 16) {
+            int r1 = r0 + 16 < R ? r0 + 16 : R, c1 = c0 + 16 < C ? c0 + 16 : C;
+            for (int r = r0; r < r1; r++)
+                for (int c = c0; c < c1; c++) dst[(size_t)c * ldd + r] = src[(size_t)r * lds + c];
+        }
+}
+
+/* ============ однопоточное ядро 4x4 для внимания (строки со своими шагами) ============ */
 static inline float dotv(const float *a, const float *b, int K) {
     v4f s0 = {0}, s1 = {0};
     int k = 0;
@@ -56,65 +209,6 @@ static void kern4x4(const float *A, const float *B, float *C, int lda, int ldb, 
         }
 }
 
-typedef struct { float *C; const float *A, *B; int M, N, K, acc, nbn; } GemmJob;
-
-static void gemm_task(void *ctx, int t0, int t1) {
-    GemmJob *j = ctx;
-    for (int t = t0; t < t1; t++) {
-        int m0 = (t / j->nbn) * MB, n0 = (t % j->nbn) * NB;
-        int m1 = m0 + MB < j->M ? m0 + MB : j->M;
-        int n1 = n0 + NB < j->N ? n0 + NB : j->N;
-        for (int k0 = 0; k0 < j->K; k0 += KB) {
-            int kl = j->K - k0 < KB ? j->K - k0 : KB;
-            int acc = j->acc || k0 > 0;
-            for (int m = m0; m < m1; m += 4) {
-                for (int n = n0; n < n1; n += 4) {
-                    const float *A = j->A + (size_t)m * j->K + k0;
-                    const float *B = j->B + (size_t)n * j->K + k0;
-                    float *C = j->C + (size_t)m * j->N + n;
-                    if (m + 4 <= m1 && n + 4 <= n1) {
-                        kern4x4(A, B, C, j->K, j->K, j->N, kl, acc);
-                    } else {
-                        int mr = m1 - m < 4 ? m1 - m : 4, nr = n1 - n < 4 ? n1 - n : 4;
-                        for (int i = 0; i < mr; i++)
-                            for (int q = 0; q < nr; q++) {
-                                float v = dotv(A + (size_t)i * j->K, B + (size_t)q * j->K, kl);
-                                float *c = C + (size_t)i * j->N + q;
-                                *c = acc ? *c + v : v;
-                            }
-                    }
-                }
-            }
-        }
-    }
-}
-
-void gemm_nt(float *C, const float *A, const float *B, int M, int N, int K, int acc) {
-    if (M <= 0 || N <= 0) return;
-    if (K <= 0) { if (!acc) memset(C, 0, sizeof(float) * (size_t)M * N); return; }
-    GemmJob j = {C, A, B, M, N, K, acc, (N + NB - 1) / NB};
-    int tasks = ((M + MB - 1) / MB) * j.nbn;
-    pool_run(gemm_task, &j, tasks, 1);
-}
-
-typedef struct { float *dst; const float *src; int R, C; } TrJob;
-static void tr_task(void *ctx, int b0, int b1) {
-    TrJob *j = ctx;
-    for (int b = b0; b < b1; b++) {
-        int r0 = b * 32, r1 = r0 + 32 < j->R ? r0 + 32 : j->R;
-        for (int c0 = 0; c0 < j->C; c0 += 32) {
-            int c1 = c0 + 32 < j->C ? c0 + 32 : j->C;
-            for (int r = r0; r < r1; r++)
-                for (int c = c0; c < c1; c++) j->dst[(size_t)c * j->R + r] = j->src[(size_t)r * j->C + c];
-        }
-    }
-}
-
-void transpose(float *dst, const float *src, int R, int C) {
-    TrJob j = {dst, src, R, C};
-    pool_run(tr_task, &j, (R + 31) / 32, 1);
-}
-
 void gemm_nt_st(float *C, int ldc, const float *A, int lda, const float *B, int ldb, int M, int N, int K, int acc, int mode) {
     for (int i0 = 0; i0 < M; i0 += 4) {
         int mr = M - i0 < 4 ? M - i0 : 4;
@@ -140,13 +234,4 @@ void gemm_nt_st(float *C, int ldc, const float *A, int lda, const float *B, int 
             }
         }
     }
-}
-
-void transpose_st(float *dst, int ldd, const float *src, int lds, int R, int C) {
-    for (int r0 = 0; r0 < R; r0 += 16)
-        for (int c0 = 0; c0 < C; c0 += 16) {
-            int r1 = r0 + 16 < R ? r0 + 16 : R, c1 = c0 + 16 < C ? c0 + 16 : C;
-            for (int r = r0; r < r1; r++)
-                for (int c = c0; c < c1; c++) dst[(size_t)c * ldd + r] = src[(size_t)r * lds + c];
-        }
 }

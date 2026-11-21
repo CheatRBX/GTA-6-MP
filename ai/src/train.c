@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <signal.h>
+#include <sys/ioctl.h>
 
 #define CT 256 /* токенов за раз в классификаторе (экономия памяти на логитах) */
 
@@ -21,7 +23,7 @@ typedef struct {
     float *p, *g, *m, *v;
     Weights w, gw;
     float *xs, *xn1, *xn2, *xmid, *q, *att, *k, *vv, *rms1, *rms2, *lse, *h1, *h3, *xf, *rmsf;
-    float *dx, *dxf, *dxn, *datt, *dq, *dk, *dv, *G, *dG, *dH1, *trA, *trB, *trW, *logits, *rowloss;
+    float *dx, *dxf, *dxn, *datt, *dq, *dk, *dv, *G, *dG, *dH1, *logits, *rowloss;
     float *rope_cos, *rope_sin, *ascr;
     int *inp, *tgt;
 } Net;
@@ -29,10 +31,8 @@ typedef struct {
 /* ---------------- память ---------------- */
 static size_t net_act_bytes(const Config *c, int B, int T) {
     size_t BT = (size_t)B * T, D = c->dim, F = c->hidden_dim, KV = cfg_kv_dim(c), L = c->n_layers, V = c->vocab_size;
-    size_t mx = D > F ? D : F;
     size_t per_layer = BT * (5 * D + 2 * KV + 2 * F + 2) + (size_t)B * c->n_heads * T;
-    size_t scratch = BT * (5 * D + 2 * KV + 3 * F) + 2 * (mx * BT > V * CT ? mx * BT : V * CT) +
-                     (F * D > V * D ? F * D : V * D) + CT * V + BT * (D + 1);
+    size_t scratch = BT * (5 * D + 2 * KV + 3 * F) + CT * V + BT * (D + 1);
     scratch += (size_t)pool_size() * (3 * (size_t)T * T + 2 * (D / c->n_heads) * (size_t)T);
     return 4 * (L * per_layer + BT * D + scratch);
 }
@@ -41,7 +41,6 @@ static void net_init(Net *n, const Config *c, int B, int T, int with_opt) {
     memset(n, 0, sizeof(*n));
     n->c = *c; n->B = B; n->T = T; n->BT = B * T;
     size_t BT = n->BT, D = c->dim, F = c->hidden_dim, KV = cfg_kv_dim(c), L = c->n_layers, V = c->vocab_size;
-    size_t mx = D > F ? D : F;
     n->np = params_count(c);
     n->p = xcalloc(4 * n->np);
     n->g = xcalloc(4 * n->np);
@@ -60,9 +59,6 @@ static void net_init(Net *n, const Config *c, int B, int T, int with_opt) {
     n->datt = xmalloc(4 * BT * D); n->dq = xmalloc(4 * BT * D);
     n->dk = xmalloc(4 * BT * KV); n->dv = xmalloc(4 * BT * KV);
     n->G = xmalloc(4 * BT * F); n->dG = xmalloc(4 * BT * F); n->dH1 = xmalloc(4 * BT * F);
-    size_t tr = mx * BT > V * CT ? mx * BT : V * CT;
-    n->trA = xmalloc(4 * tr); n->trB = xmalloc(4 * tr);
-    n->trW = xmalloc(4 * (F * D > V * D ? F * D : V * D));
     n->logits = xmalloc(4 * CT * V);
     n->rowloss = xmalloc(4 * BT);
     int hd = cfg_head_dim(c);
@@ -111,15 +107,30 @@ static void norm_fwd(float *y, float *rms, const float *x, const float *w, int N
     pool_run(norm_fwd_fn, &j, N, 32);
 }
 
-/* dx += d(rmsnorm)/dx · dy ;  dw += Σ dy·x·r  (dw — последовательно, это дёшево) */
-static void norm_bwd(float *dx, float *dw, const float *dy, const float *x, const float *rms, const float *w, int N, int D) {
-    for (int t = 0; t < N; t++) {
-        const float *xt = x + (size_t)t * D, *dyt = dy + (size_t)t * D;
-        float *dxt = dx + (size_t)t * D, r = rms[t], dot = 0;
-        for (int i = 0; i < D; i++) { dot += dyt[i] * w[i] * xt[i]; dw[i] += dyt[i] * xt[i] * r; }
+/* dx += d(rmsnorm)/dx · dy ;  dw += Σ dy·x·r.  Параллельно по токенам, dw — через частичные суммы потоков. */
+typedef struct { float *dx, *part; const float *dy, *x, *rms, *w; int D; } NormBJob;
+static void norm_bwd_fn(void *ctx, int t0, int t1) {
+    NormBJob *j = ctx;
+    int D = j->D;
+    float *dw = j->part + (size_t)pool_tid() * D;
+    for (int t = t0; t < t1; t++) {
+        const float *xt = j->x + (size_t)t * D, *dyt = j->dy + (size_t)t * D;
+        float *dxt = j->dx + (size_t)t * D, r = j->rms[t], dot = 0;
+        for (int i = 0; i < D; i++) { dot += dyt[i] * j->w[i] * xt[i]; dw[i] += dyt[i] * xt[i] * r; }
         float c = r * r * r * dot / D;
-        for (int i = 0; i < D; i++) dxt[i] += dyt[i] * w[i] * r - c * xt[i];
+        for (int i = 0; i < D; i++) dxt[i] += dyt[i] * j->w[i] * r - c * xt[i];
     }
+}
+static float *g_normpart = NULL;
+static void norm_bwd(float *dx, float *dw, const float *dy, const float *x, const float *rms, const float *w, int N, int D) {
+    int P = pool_size();
+    if (!g_normpart) g_normpart = xmalloc(sizeof(float) * 64 * 8192); /* до 64 потоков */
+    if (D > 8192) die("dim > 8192");
+    memset(g_normpart, 0, sizeof(float) * (size_t)P * D);
+    NormBJob j = {dx, g_normpart, dy, x, rms, w, D};
+    pool_run(norm_bwd_fn, &j, N, 64);
+    for (int p = 0; p < P; p++)
+        for (int i = 0; i < D; i++) dw[i] += g_normpart[(size_t)p * D + i];
 }
 
 static void rope_apply(float *v, int N, int T, int nh, int hd, const float *cs, const float *sn, int inverse) {
@@ -290,14 +301,16 @@ static void loss_fn(void *ctx, int r0, int r1) {
         }
         float mx = lg[0];
         for (int i = 1; i < V; i++) if (lg[i] > mx) mx = lg[i];
-        float sum = 0;
-        for (int i = 0; i < V; i++) sum += expf(lg[i] - mx);
-        float lse = mx + logf(sum);
-        n->rowloss[j->c0 + r] = lse - lg[tg];
-        if (j->backward) {
-            for (int i = 0; i < V; i++) lg[i] = expf(lg[i] - lse) * j->scale;
+        float sum = 0, ltg = lg[tg];
+        if (j->backward) { /* exp считаем один раз и сразу оставляем в буфере */
+            for (int i = 0; i < V; i++) { float e = expf(lg[i] - mx); lg[i] = e; sum += e; }
+            float k = j->scale / sum;
+            for (int i = 0; i < V; i++) lg[i] *= k;
             lg[tg] -= j->scale;
+        } else {
+            for (int i = 0; i < V; i++) sum += expf(lg[i] - mx);
         }
+        n->rowloss[j->c0 + r] = mx + logf(sum) - ltg;
     }
 }
 
@@ -305,17 +318,14 @@ static void loss_fn(void *ctx, int r0, int r1) {
 static double net_classifier(Net *n, int backward, float scale) {
     const Config *c = &n->c;
     int BT = n->BT, D = c->dim, V = c->vocab_size;
-    if (backward) transpose(n->trW, n->w.emb, V, D); /* embT [D,V] */
     for (int c0 = 0; c0 < BT; c0 += CT) {
         int ct = BT - c0 < CT ? BT - c0 : CT;
         gemm_nt(n->logits, n->xf + (size_t)c0 * D, n->w.emb, ct, V, D, 0);
         LossJob lj = {n, c0, scale, backward};
         pool_run(loss_fn, &lj, ct, 4);
         if (backward) {
-            gemm_nt(n->dxf + (size_t)c0 * D, n->logits, n->trW, ct, D, V, 0);
-            transpose(n->trA, n->logits, ct, V);                 /* [V,ct] */
-            transpose(n->trB, n->xf + (size_t)c0 * D, ct, D);    /* [D,ct] */
-            gemm_nt(n->gw.emb, n->trA, n->trB, V, D, ct, 1);
+            gemm(n->dxf + (size_t)c0 * D, n->logits, n->w.emb, ct, D, V, 0, 0, 1);       /* dxf = dlogits · E */
+            gemm(n->gw.emb, n->logits, n->xf + (size_t)c0 * D, V, D, ct, 1, 1, 1);       /* dE += dlogits^T · xf */
         }
     }
     double s = 0;
@@ -323,16 +333,13 @@ static double net_classifier(Net *n, int backward, float scale) {
     return s;
 }
 
-/* dW[out,in] += dy^T · x  (через транспонирование, одно быстрое ядро) */
+/* dW[out,in] += dy^T · x   (транспонирование встроено в упаковку gemm) */
 static void linear_bwd_w(Net *n, float *dW, const float *dy, const float *x, int out, int in) {
-    transpose(n->trA, dy, n->BT, out);
-    transpose(n->trB, x, n->BT, in);
-    gemm_nt(dW, n->trA, n->trB, out, in, n->BT, 1);
+    gemm(dW, dy, x, out, in, n->BT, 1, 1, 1);
 }
 /* dx[BT,in] (+)= dy[BT,out] · W[out,in] */
 static void linear_bwd_x(Net *n, float *dx, const float *dy, const float *W, int out, int in, int acc) {
-    transpose(n->trW, W, out, in);
-    gemm_nt(dx, dy, n->trW, n->BT, in, out, acc);
+    gemm(dx, dy, W, n->BT, in, out, acc, 0, 1);
 }
 
 /* ---------------- обратный проход ---------------- */
@@ -594,6 +601,42 @@ static void print_sample(Net *n, const Tokenizer *tok, const char *prompt, int n
 }
 
 /* ---------------- главный цикл ---------------- */
+static volatile sig_atomic_t g_stop = 0;
+static void on_stop(int sig) {
+    (void)sig;
+    if (g_stop) _exit(130); /* второй Ctrl+C — выйти сразу */
+    g_stop = 1;
+    const char msg[] = "\n  ⏸ сохраняю после текущего шага… (ещё раз Ctrl+C — выйти без сохранения)\n";
+    ssize_t r = write(STDOUT_FILENO, msg, sizeof msg - 1);
+    (void)r;
+}
+
+static int term_cols(void) {
+    struct winsize ws;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col > 10) return ws.ws_col;
+    return 80;
+}
+
+/* Обрезает строку с ANSI-кодами до max видимых символов (UTF-8), чтобы она не переносилась. */
+static void fit_line(char *s, int max) {
+    int vis = 0;
+    for (char *p = s; *p;) {
+        if (*p == 0x1b && p[1] == '[') {
+            p += 2;
+            while (*p && !((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z'))) p++;
+            if (*p) p++;
+            continue;
+        }
+        if (vis >= max) { strcpy(p, "\033[0m"); return; }
+        unsigned char ch = (unsigned char)*p;
+        p += ch < 0x80 ? 1 : (ch & 0xE0) == 0xC0 ? 2 : (ch & 0xF0) == 0xE0 ? 3 : 4;
+        vis++;
+    }
+}
+
+static void live_clear(int live) {
+    if (live) { cprintf("\r\033[K"); fflush(stdout); }
+}
 void train_opts_default(TrainOpts *o) {
     memset(o, 0, sizeof(*o));
     o->preset = "nano";
@@ -703,10 +746,21 @@ int train_run(TrainOpts *o) {
     }
     if (start_step >= o->steps) { cprintf("уже обучено %lld шагов (>= --steps)\n", (long long)start_step); return 0; }
 
-    double t_start = now_sec(), t_last = t_start;
-    int64_t tok_last = 0, done_tokens = 0;
-    double loss_ema = -1;
-    for (int64_t step = start_step; step < o->steps; step++) {
+    struct sigaction sa;
+    memset(&sa, 0, sizeof sa);
+    sa.sa_handler = on_stop;
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+    int live = g_color && isatty(STDOUT_FILENO);
+    cprintf("  \033[2mCtrl+C — пауза с сохранением; продолжить: та же команда с --resume (или тот же скрипт)\033[0m\n");
+    fflush(stdout);
+
+    double t_start = now_sec(), t_win = t_start, t_draw = 0;
+    int64_t tok_win = 0, done_tokens = 0;
+    double loss_ema = -1, tps = 0;
+    int64_t s1 = start_step;
+    for (int64_t step = start_step; step < o->steps && !g_stop; step++) {
         float lr;
         if (step < o->warmup) lr = o->lr * (step + 1) / o->warmup;
         else {
@@ -729,45 +783,76 @@ int train_run(TrainOpts *o) {
         float gn = grad_norm(&n);
         float gscale = (o->clip > 0 && gn > o->clip) ? o->clip / gn : 1.0f;
         if (isfinite(gn)) adam_step(&n, (int)(step + 1), lr, o, gscale);
-        else cprintf("\033[33m  шаг %lld: градиент NaN/Inf — пропущен\033[0m\n", (long long)step + 1);
+        else { live_clear(live); cprintf("\033[33m  шаг %lld: градиент NaN/Inf — пропущен\033[0m\n", (long long)step + 1); }
         double loss = valid ? loss_sum / valid : 0;
-        loss_ema = loss_ema < 0 ? loss : 0.9 * loss_ema + 0.1 * loss;
+        loss_ema = loss_ema < 0 ? loss : 0.95 * loss_ema + 0.05 * loss;
         tokens_seen += (int64_t)B * T * o->accum;
         done_tokens += (int64_t)B * T * o->accum;
-        int64_t s1 = step + 1;
-        if (s1 % o->log_every == 0 || s1 == o->steps || s1 == start_step + 1) {
-            double now = now_sec();
-            double tps = (done_tokens - tok_last) / (now - t_last + 1e-9);
-            double per_step = (now - t_start) / (double)(s1 - start_step);
-            char eta[32], el[32];
-            fmt_time(per_step * (o->steps - s1), eta, sizeof eta);
-            fmt_time(now - t_start, el, sizeof el);
-            char bar[64] = "";
-            int fill = (int)(12.0 * s1 / o->steps), bl = 0;
-            for (int i = 0; i < 12; i++) bl += snprintf(bar + bl, sizeof bar - bl, "%s", i < fill ? "█" : "░");
-            cprintf("  \033[38;5;141m%s\033[0m шаг \033[1m%lld\033[0m/%d  loss \033[1;36m%.4f\033[0m (ср %.3f)  lr %.1e  |g| %.2f  "
-                    "\033[32m%.0f ток/с\033[0m  прошло %s  осталось %s\n",
-                    bar, (long long)s1, o->steps, loss, loss_ema, lr, gn, tps, el, eta);
+        s1 = step + 1;
+        double now = now_sec();
+        if (now - t_win > 2.0 || s1 == start_step + 1) { /* скорость по окну ~2 с */
+            tps = (done_tokens - tok_win) / (now - t_win + 1e-9);
+            t_win = now; tok_win = done_tokens;
+        }
+        double per_step = (now - t_start) / (double)(s1 - start_step);
+        char eta[32];
+        fmt_time(per_step * (o->steps - s1), eta, sizeof eta);
+        if (live) {
+            if (now - t_draw > 0.2 || s1 == o->steps) {
+                t_draw = now;
+                int cols = term_cols();
+                int bw = cols >= 80 ? 16 : cols >= 56 ? 10 : 6;
+                char bar[96] = "", line[512];
+                int fill = (int)((double)bw * s1 / o->steps + 0.5), bl = 0;
+                for (int i = 0; i < bw; i++) bl += snprintf(bar + bl, sizeof bar - bl, "%s", i < fill ? "━" : "─");
+                if (cols >= 64)
+                    snprintf(line, sizeof line, "  \033[38;5;141m%s\033[0m %lld/%d · loss \033[1;36m%.3f\033[0m · \033[32m%.0f ток/с\033[0m · осталось %s",
+                             bar, (long long)s1, o->steps, loss_ema, tps, eta);
+                else
+                    snprintf(line, sizeof line, " \033[38;5;141m%s\033[0m %lld/%d \033[1;36m%.2f\033[0m \033[32m%.0fт/с\033[0m %s",
+                             bar, (long long)s1, o->steps, loss_ema, tps, eta);
+                fit_line(line, cols - 1);
+                cprintf("\r\033[K%s", line);
+                fflush(stdout);
+            }
+        } else if (s1 % o->log_every == 0 || s1 == o->steps || s1 == start_step + 1) {
+            cprintf("  шаг %lld/%d  loss %.4f (ср %.3f)  lr %.1e  |g| %.2f  %.0f ток/с  осталось %s\n",
+                    (long long)s1, o->steps, loss, loss_ema, lr, gn, tps, eta);
             fflush(stdout);
-            t_last = now; tok_last = done_tokens;
         }
         if (have_val && (s1 % o->eval_every == 0 || s1 == o->steps)) {
             double vl = eval_loss(&n, &val, o->eval_iters, c.vocab_size);
-            cprintf("  \033[1;33m▸ валидация: loss %.4f, перплексия %.1f\033[0m\n", vl, exp(vl));
+            live_clear(live);
+            cprintf("  \033[1;33m▸\033[0m шаг %lld · loss %.3f · \033[1;33mвалидация %.3f, перплексия %.1f\033[0m · %.0f ток/с\n",
+                    (long long)s1, loss_ema, vl, exp(vl), tps);
         }
-        if (o->sample_every > 0 && (s1 % o->sample_every == 0 || s1 == o->steps))
+        if (o->sample_every > 0 && (s1 % o->sample_every == 0 || s1 == o->steps)) {
+            live_clear(live);
             print_sample(&n, &tok, o->sample_prompt, 48, &rng);
+        }
         if (s1 % o->save_every == 0 || s1 == o->steps) {
             save_model_f32(o->out, &c, n.p, tokblob, toksize, base_steps + s1, tokens_seen);
             save_opt(o->out, &n, s1, tokens_seen, rng);
-            cprintf("  \033[2m💾 сохранено: %s\033[0m\n", o->out);
-            fflush(stdout);
+            if (!live) { cprintf("  \033[2m💾 сохранено: %s\033[0m\n", o->out); fflush(stdout); }
         }
+    }
+    live_clear(live);
+    if (g_stop) {
+        if (s1 > start_step) {
+            save_model_f32(o->out, &c, n.p, tokblob, toksize, base_steps + s1, tokens_seen);
+            save_opt(o->out, &n, s1, tokens_seen, rng);
+        }
+        cprintf("\033[1;33m⏸ пауза на шаге %lld/%d — всё сохранено в %s\033[0m\n", (long long)s1, o->steps, o->out);
+        cprintf("  продолжить: та же команда с --resume (quickstart.sh продолжит сам)\n");
+        cprintf("  попробовать уже сейчас: ./corax gen -m %s -p \"Однажды\"\n", o->out);
+        fflush(stdout);
+        tok_free(&tok);
+        free(tokblob);
+        return 130;
     }
     char el[32];
     fmt_time(now_sec() - t_start, el, sizeof el);
     cprintf("\033[1;32m✔ готово за %s. Модель: %s\033[0m\n", el, o->out);
-    cprintf("  дальше: ./corax quantize %s models/model-q8.bin q8   и   ./corax chat -m models/model-q8.bin\n", o->out);
     tok_free(&tok);
     free(tokblob);
     return 0;

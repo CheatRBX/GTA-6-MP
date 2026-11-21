@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Полный цикл с нуля: данные → токенизатор → обучение → дообучение на диалогах → квантование → чат.
-#   bash scripts/quickstart.sh            # пресет nano, ~1–2 часа на телефоне
+#   bash scripts/quickstart.sh                 # пресет nano, ~30 минут на Snapdragon 7 Gen 3
+#   STEPS=3000 bash scripts/quickstart.sh      # дольше учится — лучше пишет
 #   PRESET=small STEPS=4000 bash scripts/quickstart.sh
+# Ctrl+C — пауза с сохранением; повторный запуск продолжит с того же места.
 set -e
 cd "$(dirname "$0")/.."
 PRESET=${PRESET:-nano}
-STEPS=${STEPS:-2000}
+STEPS=${STEPS:-1500}
 FT_STEPS=${FT_STEPS:-200}
 QUANT=${QUANT:-q8}
 
@@ -24,12 +26,17 @@ if [ ! -f data/train.bin ]; then
 fi
 
 if [ ! -f models/base.bin ] || [ -f models/base.bin.opt ]; then
-    echo "◆ 3/6 Обучаю модель с нуля: $PRESET, $STEPS шагов (можно прервать Ctrl+C и продолжить: тот же скрипт)"
+    echo "◆ 3/6 Обучаю модель с нуля: $PRESET, $STEPS шагов"
     RESUME=""
     [ -f models/base.bin.opt ] && RESUME="--resume"
     ./corax train --preset "$PRESET" --data data/train.bin --val data/val.bin --tokenizer data/tokenizer.bin \
         --out models/base.bin --steps "$STEPS" --sample-prompt "Однажды" $RESUME
     rm -f models/base.bin.opt
+fi
+
+if [ -f "models/chat-$QUANT.bin" ] && [ "models/chat-$QUANT.bin" -nt models/base.bin ] && [ "models/chat-$QUANT.bin" -nt data/sft_example.jsonl ]; then
+    echo "✔ Модель уже готова: ./corax chat -m models/chat-$QUANT.bin"
+    exit 0
 fi
 
 echo "◆ 4/6 Готовлю диалоги для дообучения"

@@ -1,8 +1,11 @@
 #pragma once
 /* Плотная математика для обучения (f32, многопоточно). */
 
-/* C[M,N] = (acc ? C : 0) + A[M,K] · B[N,K]^T   (строки A и B непрерывны) */
-void gemm_nt(float *C, const float *A, const float *B, int M, int N, int K, int acc);
+/* C[M,N] = (acc ? C : 0) + Σ_k A(m,k)·B(n,k)
+ *   ta=0: A хранится [M][K], ta=1: A хранится [K][M]
+ *   tb=0: B хранится [N][K], tb=1: B хранится [K][N]   (транспонирование — бесплатно, при упаковке) */
+void gemm(float *C, const float *A, const float *B, int M, int N, int K, int acc, int ta, int tb);
+void gemm_nt(float *C, const float *A, const float *B, int M, int N, int K, int acc); /* ta=tb=0 */
 /* dst[C,R] = src[R,C]^T */
 void transpose(float *dst, const float *src, int R, int C);
 
