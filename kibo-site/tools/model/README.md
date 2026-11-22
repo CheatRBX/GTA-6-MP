@@ -28,6 +28,11 @@ What `build_robot.mjs` does
 * groups the real Fusion components into sub-assemblies for the exploded view (`GROUPS` / `RULES`): each group has a
   lift and a sideways move, ordered so that no part travels through another.
 
+Hosts that won't serve `.glb` files can hand the site the bytes instead: define
+`window.KIBO_MODELS = { hi, lite, plain }` before `js/main.js` loads, each entry a URL or a function
+`(onProgress) => Promise<ArrayBuffer>` (for example, base64 text parts joined back together). Where WebAssembly is
+missing or blocked by a CSP, the site skips the meshopt files and loads `plain` straight away.
+
 Every glTF node keeps its own translation/scale after `stage2.mjs` (mesh quantisation stores the de-quantisation there);
 the site adds explode offsets to it instead of overwriting it.
 

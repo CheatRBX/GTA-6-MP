@@ -186,19 +186,27 @@ export class Stage {
   }
 
   // ---------------------------------------------------------------- model
-  _loadModel(which, onProgress) {
-    const main = which === 'lite' ? 'assets/models/kibo-robot-lite.glb' : 'assets/models/kibo-robot.glb';
-    // optional copy without meshopt compression, for environments where WebAssembly is blocked
-    const plain = 'assets/models/kibo-robot-plain.glb';
-    const urls = typeof WebAssembly === 'undefined' ? [plain] : [main, plain];
+  async _loadModel(which, onProgress) {
+    // A page can override the sources: window.KIBO_MODELS = { hi, lite, plain }, each either a URL
+    // or a function (onProgress) => Promise<ArrayBuffer> for hosts that can't serve .glb files.
+    const cfg = window.KIBO_MODELS || {};
+    const main = which === 'lite' ? (cfg.lite || 'assets/models/kibo-robot-lite.glb') : (cfg.hi || 'assets/models/kibo-robot.glb');
+    // optional copy without meshopt compression, for where WebAssembly is missing or blocked by a CSP
+    const plain = cfg.plain || 'assets/models/kibo-robot-plain.glb';
+    const meshopt = MeshoptDecoder.supported !== false && await Promise.resolve(MeshoptDecoder.ready).then(() => true, () => false);
+    const sources = meshopt ? [main, plain] : [plain];
     const loader = new GLTFLoader();
     loader.setMeshoptDecoder(MeshoptDecoder);
-    const tryLoad = (i) => new Promise((resolve, reject) => {
-      loader.load(urls[i], (gltf) => { this._mount(gltf.scene); resolve(); },
-        (e) => { if (onProgress && e.lengthComputable) onProgress(e.loaded / e.total); },
-        (err) => (i + 1 < urls.length ? tryLoad(i + 1).then(resolve, reject) : reject(err)));
+    const progress = (e) => { if (onProgress && e.lengthComputable) onProgress(e.loaded / e.total); };
+    const load = (src) => (typeof src === 'function'
+      ? src(onProgress).then((bytes) => loader.parseAsync(bytes, ''))
+      : loader.loadAsync(src, progress));
+    // if every source fails, report the first error: it is about the file that was actually wanted
+    const tryLoad = (i) => load(sources[i]).catch((err) => {
+      if (i + 1 < sources.length) return tryLoad(i + 1).catch(() => { throw err; });
+      throw err;
     });
-    return tryLoad(0);
+    this._mount((await tryLoad(0)).scene);
   }
 
   _mount(root) {
