@@ -1,0 +1,8 @@
+{
+  "name": "kibo-single-file",
+  "private": true,
+  "type": "module",
+  "description": "Packs the whole site into one HTML file that opens from disk without a server",
+  "scripts": { "build": "node build.mjs" },
+  "dependencies": { "esbuild": "^0.28.0" }
+}

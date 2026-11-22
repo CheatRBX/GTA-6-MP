@@ -15,6 +15,18 @@ python3 -m http.server 8080      # or: npx serve .
 
 Deploy by uploading the folder to any static host (GitHub Pages, Netlify, Cloudflare Pages …).
 
+### One-file version
+
+`dist/kibo-site.html` is the whole site in a single file (styles, scripts, fonts and the model inside, 26 MB).
+It opens by double-click, with no server, and can be uploaded anywhere on its own.
+After changing the site, rebuild it:
+
+```bash
+cd kibo-site/tools/single-file
+npm install
+node build.mjs          # writes ../../dist/kibo-site.html
+```
+
 ## Fill in the team details
 
 Edit `js/config.js`: team number, city, e-mail and social links. Empty fields are simply not shown.
@@ -35,6 +47,7 @@ js/scene.js          Three.js stage: studio lighting, turntable, model, exploded
 js/story.js          the scroll story: camera / rotation key frames, callouts, clock, dimension lines
 assets/models        kibo-robot.glb (14 MB: all 5 029 parts, 0.25 mm tolerance), kibo-robot-lite.glb (phones, 4.8 MB), groups.json
 tools/model          how the model is built from the Fusion share link
+tools/single-file    packs the site into dist/kibo-site.html
 vendor               three.js, GSAP, Lenis (local copies)
 ```
 
