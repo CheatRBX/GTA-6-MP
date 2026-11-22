@@ -12,6 +12,8 @@ node build_robot.mjs ./svf ./out/lite.glb lite
 node stage2.mjs ./out/hi.glb   ../../assets/models/kibo-robot.glb              # quantise + meshopt + WebP textures
 node stage2.mjs ./out/lite.glb ../../assets/models/kibo-robot-lite.glb
 cp ./out/hi.groups.json ../../assets/models/groups.json
+# optional: a copy without meshopt for hosts that block WebAssembly (the site tries it automatically)
+node stage2plain.mjs ./out/lite.glb ../../assets/models/kibo-robot-plain.glb
 ```
 
 What `build_robot.mjs` does

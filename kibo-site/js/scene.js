@@ -187,13 +187,18 @@ export class Stage {
 
   // ---------------------------------------------------------------- model
   _loadModel(which, onProgress) {
-    const url = which === 'lite' ? 'assets/models/kibo-robot-lite.glb' : 'assets/models/kibo-robot.glb';
+    const main = which === 'lite' ? 'assets/models/kibo-robot-lite.glb' : 'assets/models/kibo-robot.glb';
+    // optional copy without meshopt compression, for environments where WebAssembly is blocked
+    const plain = 'assets/models/kibo-robot-plain.glb';
+    const urls = typeof WebAssembly === 'undefined' ? [plain] : [main, plain];
     const loader = new GLTFLoader();
     loader.setMeshoptDecoder(MeshoptDecoder);
-    return new Promise((resolve, reject) => {
-      loader.load(url, (gltf) => { this._mount(gltf.scene); resolve(); },
-        (e) => { if (onProgress && e.lengthComputable) onProgress(e.loaded / e.total); }, reject);
+    const tryLoad = (i) => new Promise((resolve, reject) => {
+      loader.load(urls[i], (gltf) => { this._mount(gltf.scene); resolve(); },
+        (e) => { if (onProgress && e.lengthComputable) onProgress(e.loaded / e.total); },
+        (err) => (i + 1 < urls.length ? tryLoad(i + 1).then(resolve, reject) : reject(err)));
     });
+    return tryLoad(0);
   }
 
   _mount(root) {
