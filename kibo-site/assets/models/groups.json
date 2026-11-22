@@ -1,0 +1,155 @@
+[
+ {
+  "name": "frame",
+  "region": "chassis",
+  "c": [
+   0.0309,
+   -0.1779,
+   -0.0031
+  ],
+  "dir": [
+   0,
+   0,
+   0
+  ],
+  "lift": 0,
+  "delay": 0,
+  "parts": 2378
+ },
+ {
+  "name": "shooter",
+  "region": "turret",
+  "c": [
+   0.0178,
+   0.0124,
+   -0.0097
+  ],
+  "dir": [
+   0,
+   0,
+   0
+  ],
+  "lift": 0.34,
+  "delay": 0,
+  "parts": 180
+ },
+ {
+  "name": "camera",
+  "region": "turret",
+  "c": [
+   -0.1897,
+   0.011,
+   -0.001
+  ],
+  "dir": [
+   -0.09,
+   0,
+   0
+  ],
+  "lift": 0.26,
+  "delay": 0.06,
+  "parts": 21
+ },
+ {
+  "name": "turret",
+  "region": "turret",
+  "c": [
+   -0.0373,
+   -0.0363,
+   -0.0502
+  ],
+  "dir": [
+   0,
+   0,
+   0
+  ],
+  "lift": 0.18,
+  "delay": 0.12,
+  "parts": 45
+ },
+ {
+  "name": "rear",
+  "region": "lift",
+  "c": [
+   0.1642,
+   -0.0112,
+   0.0027
+  ],
+  "dir": [
+   0.2,
+   0,
+   0
+  ],
+  "lift": 0.08,
+  "delay": 0.14,
+  "parts": 1615
+ },
+ {
+  "name": "elecR",
+  "region": "electronics",
+  "c": [
+   0.0453,
+   -0.0754,
+   -0.1196
+  ],
+  "dir": [
+   0,
+   0,
+   -0.18
+  ],
+  "lift": 0.12,
+  "delay": 0.2,
+  "parts": 235
+ },
+ {
+  "name": "elecL",
+  "region": "electronics",
+  "c": [
+   0.0205,
+   -0.0811,
+   0.1262
+  ],
+  "dir": [
+   0,
+   0,
+   0.18
+  ],
+  "lift": 0.12,
+  "delay": 0.2,
+  "parts": 138
+ },
+ {
+  "name": "intake",
+  "region": "intake",
+  "c": [
+   -0.1368,
+   -0.1096,
+   0.0048
+  ],
+  "dir": [
+   -0.2,
+   0.02,
+   0
+  ],
+  "lift": 0,
+  "delay": 0.24,
+  "parts": 296
+ },
+ {
+  "name": "transfer",
+  "region": "intake",
+  "c": [
+   0.0576,
+   -0.1243,
+   -0.0209
+  ],
+  "dir": [
+   0,
+   0,
+   0
+  ],
+  "lift": 0.1,
+  "delay": 0.32,
+  "parts": 121
+ }
+]

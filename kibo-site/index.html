@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ru" data-lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>KIBO — команда FIRST Tech Challenge</title>
+  <meta name="description" content="KIBO — команда FIRST Tech Challenge. Настоящая CAD-модель нашего робота в 3D: узлы, габариты, процесс и матч.">
+  <meta name="theme-color" content="#0d0d0e">
+  <meta name="color-scheme" content="dark">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="KIBO — команда FIRST Tech Challenge">
+  <meta property="og:description" content="Наш робот в 3D: прокрутите страницу, и он повернётся, раскроется на узлы и расскажет о себе.">
+  <meta property="og:image" content="assets/img/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+
+  <link rel="preload" href="assets/fonts/inter-tight-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/inter-tight-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="vendor/lenis/lenis.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three/build/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+  </script>
+</head>
+<body>
+  <!-- Loader -->
+  <div class="loader" id="loader" role="status" aria-live="polite">
+    <div class="loader__inner">
+      <span class="loader__word" aria-hidden="true">KIBO</span>
+      <div class="loader__bar"><i id="loaderBar"></i></div>
+      <div class="loader__row mono"><span data-i18n="loader.text">Загружаем модель робота</span><span id="loaderPct">0%</span></div>
+    </div>
+  </div>
+
+  <!-- 3D stage (fixed) -->
+  <canvas class="stage" id="stage" aria-hidden="true"></canvas>
+  <svg class="overlay" id="overlay" aria-hidden="true"></svg>
+  <div class="tags" id="tags" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- HUD -->
+  <header class="nav" id="nav">
+    <a class="nav__brand" href="#hero" aria-label="KIBO">
+      <span class="nav__mark">KIBO</span>
+      <span class="nav__tag mono" id="teamTag">FTC</span>
+    </a>
+    <nav class="nav__links mono" aria-label="Разделы">
+      <a href="#tour" data-i18n="nav.tour">Робот</a>
+      <a href="#explode" data-i18n="nav.explode">Конструкция</a>
+      <a href="#match" data-i18n="nav.match">Матч</a>
+      <a href="#process" data-i18n="nav.process">Процесс</a>
+      <a href="#join" data-i18n="nav.join">Контакты</a>
+    </nav>
+    <div class="lang mono" role="group" aria-label="Язык / Language">
+      <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <aside class="hud mono" aria-hidden="true">
+    <span class="hud__angle">ROT <b id="hudAngle">125</b>°</span>
+    <span class="hud__cad" data-i18n="hero.cad">CAD · Fusion · v40</span>
+  </aside>
+
+  <nav class="rail" id="rail" aria-label="Прогресс страницы">
+    <i class="rail__fill" id="railFill"></i>
+  </nav>
+
+  <main id="top">
+    <!-- 1. HERO -->
+    <section class="hero" id="hero" data-nav="hero">
+      <div class="hero__word" aria-hidden="true"><span>K</span><span>I</span><span>B</span><span>O</span></div>
+      <h1 class="sr-only">KIBO — команда FIRST Tech Challenge</h1>
+      <div class="hero__ui">
+        <div class="hero__left">
+          <p class="eyebrow mono" data-i18n="hero.eyebrow">Команда FIRST Tech Challenge</p>
+          <p class="hero__tag" data-i18n="hero.tag">Проектируем. Строим. Программируем.</p>
+        </div>
+        <p class="hero__sub" data-i18n="hero.sub">Это настоящая CAD-модель нашего робота. Прокрутите страницу: он повернётся, раскроется на узлы и расскажет о себе.</p>
+        <div class="hero__scroll mono"><i></i><span data-i18n="hero.scroll">Листайте</span></div>
+      </div>
+    </section>
+
+    <!-- 2. ABOUT -->
+    <section class="about" id="about" data-nav="about">
+      <div class="wrap about__wrap">
+        <p class="label mono" data-i18n="about.label">О команде</p>
+        <p class="statement" id="statement" data-i18n="about.text">Мы — KIBO, команда FIRST Tech Challenge. Мы придумываем механизмы, рисуем их в CAD, собираем из алюминия и карбона и пишем код, который заставляет всё это работать на матче.</p>
+        <dl class="facts">
+          <div><dt class="mono" data-i18n="about.f1k">Лига</dt><dd data-i18n="about.f1v">FIRST Tech Challenge</dd></div>
+          <div><dt class="mono" data-i18n="about.f2k">Лимит размера</dt><dd data-i18n="about.f2v">18 × 18 × 18 дюймов (457 мм)</dd></div>
+          <div><dt class="mono" data-i18n="about.f3k">Длина матча</dt><dd data-i18n="about.f3v">2:30</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- 3. TOUR (pinned) -->
+    <section class="pin pin--tour" id="tour" data-nav="tour">
+      <div class="sticky">
+        <div class="tour__head wrap">
+          <p class="label mono" data-i18n="tour.label">Робот</p>
+          <h2 class="h2" data-i18n="tour.title">Один робот.<br>Пять узлов.</h2>
+        </div>
+
+        <div class="tour__panel wrap" id="stations">
+          <article class="station" data-station="chassis">
+            <p class="station__n mono"><b>01</b> / 05</p>
+            <h3 class="station__t" data-i18n="tour.s1.t">Шасси</h3>
+            <p class="station__p" data-i18n="tour.s1.p">Рама из 3-мм алюминиевых пластин и карбоновых трубок. Её двигают четыре мотора goBILDA Yellow Jacket 435 об/мин через ремни HTD 5 мм.</p>
+            <ul class="station__b mono"><li data-i18n="tour.s1.b1">4 × goBILDA 435 об/мин</li><li data-i18n="tour.s1.b2">Одометрия goBILDA Pinpoint</li></ul>
+          </article>
+          <article class="station" data-station="intake">
+            <p class="station__n mono"><b>02</b> / 05</p>
+            <h3 class="station__t" data-i18n="tour.s2.t">Захват</h3>
+            <p class="station__p" data-i18n="tour.s2.p">Захват во всю ширину робота: пять роликов из трубки Ø90 мм на одном валу. За ним трансфер подаёт элементы дальше внутрь.</p>
+            <ul class="station__b mono"><li data-i18n="tour.s2.b1">5 роликов Ø90 мм</li><li data-i18n="tour.s2.b2">Трансфер</li></ul>
+          </article>
+          <article class="station" data-station="turret">
+            <p class="station__n mono"><b>03</b> / 05</p>
+            <h3 class="station__t" data-i18n="tour.s3.t">Турель и шутер</h3>
+            <p class="station__p" data-i18n="tour.s3.p">Шутер с маховиком стоит на поворотной турели из 3-мм алюминия. Спереди на балке закреплена камера Limelight 3A.</p>
+            <ul class="station__b mono"><li data-i18n="tour.s3.b1">Маховик</li><li data-i18n="tour.s3.b2">Limelight 3A</li></ul>
+          </article>
+          <article class="station" data-station="lift">
+            <p class="station__n mono"><b>04</b> / 05</p>
+            <h3 class="station__t" data-i18n="tour.s4.t">Задний блок</h3>
+            <p class="station__p" data-i18n="tour.s4.p">Самый большой узел робота: 1 469 тел в CAD. Карбоновые боковины, поликарбонатная стенка и катушки внутри.</p>
+            <ul class="station__b mono"><li data-i18n="tour.s4.b1">Карбон</li><li data-i18n="tour.s4.b2">Поликарбонат</li></ul>
+          </article>
+          <article class="station" data-station="electronics">
+            <p class="station__n mono"><b>05</b> / 05</p>
+            <h3 class="station__t" data-i18n="tour.s5.t">Электроника</h3>
+            <p class="station__p" data-i18n="tour.s5.p">REV Control Hub и Expansion Hub стоят по бортам на карбоновых кронштейнах. Рядом аккумулятор и сервоприводы Axon Mini.</p>
+            <ul class="station__b mono"><li data-i18n="tour.s5.b1">REV Control Hub</li><li data-i18n="tour.s5.b2">Expansion Hub</li></ul>
+          </article>
+        </div>
+
+        <ol class="tour__rail mono" id="tourRail">
+          <li data-i18n="part.chassis">Шасси</li>
+          <li data-i18n="part.intake">Захват</li>
+          <li data-i18n="part.turret">Турель и шутер</li>
+          <li data-i18n="part.lift">Задний блок</li>
+          <li data-i18n="part.electronics">Электроника</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 4. EXPLODE (pinned) -->
+    <section class="pin pin--explode" id="explode" data-nav="explode">
+      <div class="sticky">
+        <div class="explode__copy wrap">
+          <p class="label mono" data-i18n="explode.label">Конструкция</p>
+          <h2 class="h2" data-i18n="explode.title">Разберём на узлы</h2>
+          <p class="lead" data-i18n="explode.p">Так выглядит CAD-сборка, если раздвинуть её по подсистемам. Каждый узел проектируется отдельно и потом встаёт в общий габарит.</p>
+          <p class="explode__scan mono" data-i18n="explode.scan">Срез. Плоскость идёт сверху вниз, и видно, как узлы устроены внутри.</p>
+          <p class="hint mono"><i></i><span data-i18n="explode.note">Прокрутите обратно, чтобы собрать</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. SPECS -->
+    <section class="specs" id="specs" data-nav="specs">
+      <div class="wrap specs__wrap">
+        <div class="specs__head">
+          <p class="label mono" data-i18n="specs.label">Характеристики</p>
+          <h2 class="h2" data-i18n="specs.title">Робот<br>в цифрах</h2>
+        </div>
+        <dl class="table">
+          <div class="row"><dt class="mono" data-i18n="specs.r1k">Длина × высота × ширина</dt><dd data-i18n="specs.r1v">449 × 446 × 420 <span>мм</span></dd></div>
+          <div class="row"><dt class="mono" data-i18n="specs.r2k">Лимит размера FTC</dt><dd data-i18n="specs.r2v">457 × 457 × 457 <span>мм</span></dd></div>
+          <div class="row"><dt class="mono" data-i18n="specs.r3k">Моторы шасси</dt><dd data-i18n="specs.r3v">4 × goBILDA <span>435 об/мин</span></dd></div>
+          <div class="row"><dt class="mono" data-i18n="specs.r4k">Тел в CAD-сборке</dt><dd><b data-count="5029">5 029</b></dd></div>
+          <div class="row"><dt class="mono" data-i18n="specs.r5k">Контроллеры</dt><dd>REV Control <span>+</span> Expansion Hub</dd></div>
+          <div class="row"><dt class="mono" data-i18n="specs.r6k">Камера</dt><dd>Limelight 3A</dd></div>
+        </dl>
+        <p class="specs__note mono" data-i18n="specs.note">Размеры измерены на CAD-модели, а не вписаны вручную.</p>
+      </div>
+    </section>
+
+    <!-- 6. MATCH (pinned) -->
+    <section class="pin pin--match" id="match" data-nav="match">
+      <div class="sticky">
+        <div class="match__wrap wrap">
+          <div class="match__copy">
+            <p class="label mono" data-i18n="match.label">Матч</p>
+            <h2 class="h2" data-i18n="match.title">2:30, чтобы всё доказать</h2>
+            <p class="lead" data-i18n="match.p">Матч FTC состоит из трёх частей. Всё, что мы строим, оценивается тем, что оно делает в эти минуты.</p>
+          </div>
+          <div class="clock" aria-live="off">
+            <div class="clock__time mono" id="clockTime">0:00</div>
+            <div class="clock__bar" id="clockBar">
+              <div class="seg seg--auto" style="--w:30"><i></i></div>
+              <div class="seg seg--trans" style="--w:8"><i></i></div>
+              <div class="seg seg--tele" style="--w:120"><i></i><u></u></div>
+            </div>
+            <div class="clock__phases">
+              <div class="phase" data-phase="auto"><h3><span data-i18n="match.auto.t">Автономный период</span> <em class="mono" data-i18n="match.auto.d">0:30</em></h3><p data-i18n="match.auto.p">Робот играет сам. Никаких команд от водителей, только код и датчики.</p></div>
+              <div class="phase" data-phase="trans"><h3><span data-i18n="match.trans.t">Переход</span> <em class="mono" data-i18n="match.trans.d">0:08</em></h3><p data-i18n="match.trans.p">Водители берут контроллеры.</p></div>
+              <div class="phase" data-phase="tele"><h3><span data-i18n="match.tele.t">Управляемый период</span> <em class="mono" data-i18n="match.tele.d">2:00</em></h3><p data-i18n="match.tele.p">Работают два водителя. Последние 30 секунд — эндгейм.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. PROCESS -->
+    <section class="process" id="process" data-nav="process">
+      <div class="wrap process__wrap">
+        <div class="process__head">
+          <p class="label mono" data-i18n="process.label">Процесс</p>
+          <h2 class="h2" data-i18n="process.title">Как рождается<br>робот</h2>
+        </div>
+        <ol class="steps">
+          <li class="step"><span class="step__n mono">01</span><h3 data-i18n="process.1.t">Правила и стратегия</h3><p data-i18n="process.1.d">Читаем руководство сезона, считаем очки и решаем, что именно будет делать наш робот.</p></li>
+          <li class="step"><span class="step__n mono">02</span><h3 data-i18n="process.2.t">Идея и CAD</h3><p data-i18n="process.2.d">Эскизы, расчёты и модель в Fusion. Проверяем сборку на экране до того, как резать металл.</p></li>
+          <li class="step"><span class="step__n mono">03</span><h3 data-i18n="process.3.t">Прототип</h3><p data-i18n="process.3.d">Простые версии узлов, которые проверяем руками: что работает на самом деле.</p></li>
+          <li class="step"><span class="step__n mono">04</span><h3 data-i18n="process.4.t">Сборка</h3><p data-i18n="process.4.d">Рабочая конструкция из металла, карбона и пластика: собрана и проложена проводка.</p></li>
+          <li class="step"><span class="step__n mono">05</span><h3 data-i18n="process.5.t">Код и тесты</h3><p data-i18n="process.5.d">Автономный и управляемый режимы, калибровка датчиков и прогон за прогоном.</p></li>
+          <li class="step"><span class="step__n mono">06</span><h3 data-i18n="process.6.t">Соревнования</h3><p data-i18n="process.6.d">Матчи, интервью с судьями и доработки между играми.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 8. VALUES -->
+    <section class="values" id="values" data-nav="values">
+      <div class="wrap values__wrap">
+        <p class="label mono" data-i18n="values.label">Ценности</p>
+        <h2 class="h2" data-i18n="values.title">Ценности FIRST,<br>по которым мы играем</h2>
+        <ul class="values__list">
+          <li data-i18n="values.v1">Открытия</li>
+          <li data-i18n="values.v2">Инновации</li>
+          <li data-i18n="values.v3">Влияние</li>
+          <li data-i18n="values.v4">Инклюзия</li>
+          <li data-i18n="values.v5">Командная работа</li>
+          <li data-i18n="values.v6">Радость</li>
+        </ul>
+        <p class="values__note" data-i18n="values.note">Gracious Professionalism® и Coopertition®: уважение к соперникам и готовность помочь им даже в разгар матча.</p>
+      </div>
+    </section>
+
+    <!-- 9. JOIN -->
+    <section class="join" id="join" data-nav="join">
+      <div class="wrap join__wrap">
+        <p class="label mono" data-i18n="join.label">Контакты</p>
+        <h2 class="h2 h2--xl" data-i18n="join.title">Поддержите команду</h2>
+        <p class="lead" data-i18n="join.p">Мы ищем партнёров, наставников и людей, которым интересна инженерия. Напишите нам.</p>
+        <div class="join__cta" id="joinCta" hidden></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot" id="foot">
+    <div class="foot__word" aria-hidden="true">KIBO</div>
+    <div class="wrap foot__row mono">
+      <p id="footMeta">KIBO · FIRST Tech Challenge</p>
+      <p class="foot__legal" data-i18n="foot.legal">FIRST® и FIRST® Tech Challenge — зарегистрированные товарные знаки FIRST®. Это сайт команды, а не официальный сайт FIRST.</p>
+    </div>
+  </footer>
+
+  <noscript><style>.loader{display:none}.stage{display:none}</style></noscript>
+
+  <script src="vendor/gsap/gsap.min.js"></script>
+  <script src="vendor/gsap/ScrollTrigger.min.js"></script>
+  <script src="vendor/gsap/SplitText.min.js"></script>
+  <script src="vendor/lenis/lenis.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

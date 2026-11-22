@@ -1,0 +1,14 @@
+{
+  "name": "kibo-model-tools",
+  "private": true,
+  "type": "module",
+  "description": "Builds assets/models/*.glb from the robot's Fusion share link",
+  "dependencies": {
+    "@gltf-transform/core": "^4.0.0",
+    "@gltf-transform/extensions": "^4.0.0",
+    "@gltf-transform/functions": "^4.0.0",
+    "forge-convert-utils": "^4.0.0",
+    "meshoptimizer": "^1.0.0",
+    "sharp": "^0.34.0"
+  }
+}
