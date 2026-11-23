@@ -44,7 +44,7 @@ a{color:inherit}
 .rail a[aria-current="true"]::before{content:"> "}
 .rail a:hover{color:var(--ink)}
 .rail span{display:none}
-.rail a:hover span,.rail a[aria-current="true"] span{display:inline}
+.rail a:hover span,.rail a:focus-visible span,.rail a[aria-current="true"] span{display:inline}
 
 main{position:relative;z-index:2}
 
@@ -76,8 +76,8 @@ main{position:relative;z-index:2}
 .finale .panel{margin:0 auto;text-align:left}
 .actions{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:18px}
 .btn{font:inherit;font-size:14px;font-weight:700;color:var(--amber);background:transparent;border:0;padding:8px 4px;cursor:pointer;letter-spacing:.02em}
-.btn::before{content:"[ "}
-.btn::after{content:" ]"}
+.btn::before{content:"[ ";content:"[ " / ""}
+.btn::after{content:" ]";content:" ]" / ""}
 .btn:hover{background:var(--amber);color:var(--bg)}
 .btn[aria-pressed="true"]{color:var(--bg);background:var(--amber)}
 footer{position:relative;z-index:2;padding:28vh var(--gutter) 28px;font-size:12px;color:var(--muted);letter-spacing:.06em;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px}
@@ -123,14 +123,14 @@ footer span{font-variant-numeric:tabular-nums}
 </div>
 
 <nav class="rail" aria-label="Главы">
-  <a href="#top" data-go="0">00<span> начало</span></a>
-  <a href="#ch1" data-go="1">01<span> вес</span></a>
-  <a href="#ch2" data-go="2">02<span> сугробы</span></a>
-  <a href="#ch3" data-go="3">03<span> ветер</span></a>
-  <a href="#ch4" data-go="4">04<span> огни</span></a>
-  <a href="#ch5" data-go="5">05<span> озеро</span></a>
-  <a href="#ch6" data-go="6">06<span> сияние</span></a>
-  <a href="#ch7" data-go="7">07<span> рассвет</span></a>
+  <a href="#top" data-go="0" aria-label="00 · начало">00<span> начало</span></a>
+  <a href="#ch1" data-go="1" aria-label="01 · вес">01<span> вес</span></a>
+  <a href="#ch2" data-go="2" aria-label="02 · сугробы">02<span> сугробы</span></a>
+  <a href="#ch3" data-go="3" aria-label="03 · ветер">03<span> ветер</span></a>
+  <a href="#ch4" data-go="4" aria-label="04 · огни">04<span> огни</span></a>
+  <a href="#ch5" data-go="5" aria-label="05 · озеро">05<span> озеро</span></a>
+  <a href="#ch6" data-go="6" aria-label="06 · сияние">06<span> сияние</span></a>
+  <a href="#ch7" data-go="7" aria-label="07 · рассвет">07<span> рассвет</span></a>
 </nav>
 
 <main>
@@ -305,7 +305,7 @@ buildFlip();
 /* =========================================================
    DOM / environment
    ========================================================= */
-const canvas = document.getElementById('scene');
+let canvas = document.getElementById('scene');
 const sections = [...document.querySelectorAll('[data-ch]')];
 const liveEls = {};
 document.querySelectorAll('[data-live]').forEach(el => { (liveEls[el.dataset.live] ||= []).push(el); });
@@ -1114,7 +1114,8 @@ function snowTick() {
       if (exposed && Math.random() < 0.22) {
         const d = Math.random() < 0.5 + wb ? 1 : -1, n = i + d;
         const sn = wSnow[n];
-        if (wSolid[n] === 0 && sn < s - 0.3 && (wSolid[n + WW] !== 0 || wSnow[n + WW] >= 1)) {
+        const sb2 = wSolid[n + WW];
+        if (wSolid[n] === 0 && sn < s - 0.3 && ((sb2 !== 0 && sb2 !== M_ICE) || wSnow[n + WW] >= 1)) {
           const q = (s - sn) * 0.3;
           wSnow[n] = sn + q; wSnow[i] = s - q;
           continue;
@@ -1136,8 +1137,9 @@ function snowTick() {
           const d = (Math.random() < 0.5 + wb) ? 1 : -1;
           const side = i + d, diag = b + d;
           if (wSolid[side] === 0 && wSnow[side] < 0.3 && wSolid[diag] === 0 && wSnow[diag] < 1) {
-            const supp = wSolid[diag + WW] !== 0 || wSnow[diag + WW] >= 1;
-            if (!supp) { eject(x + d, y + 1, 1, d * 1.2 + windNow * 0.2, 1); stats.slides++; }
+            const sd = wSolid[diag + WW];
+            const supp = (sd !== 0 && sd !== M_ICE) || wSnow[diag + WW] >= 1;
+            if (!supp) { eject(x + d, y + 1, s, d * 1.2 + windNow * 0.2, 1); wSnow[i] = 0; stats.slides++; continue; }
             else { const room = 1 - wSnow[diag]; wSnow[diag] += room; wSnow[i] = 1 - room; }
             if (wSnow[i] < 1e-3) wSnow[i] = 0;
             continue;
@@ -1171,12 +1173,13 @@ function snowTick() {
 }
 
 /* pointer */
-const mouse = { x: -999, y: -999, vx: 0, vy: 0, active: false, last: 0 };
+const mouse = { x: -999, y: -999, vx: 0, vy: 0, active: false, last: 0, ts: 0 };
 const rings = [];
 
 function updateParticles(dt, t) {
   gustNow = 0.6 + 0.8 * noise1(t * 0.32 + 4);
   windNow = env.wind * gustNow;
+  const kd = Math.exp(-dt * 8); mouse.vx *= kd; mouse.vy *= kd;
   const prevCount = [layerCount[0], layerCount[1], layerCount[2]];
   layerCount[0] = layerCount[1] = layerCount[2] = 0;
   let fallSum = 0, fallN = 0;
@@ -1226,8 +1229,8 @@ function updateParticles(dt, t) {
       if (d2 < MR2) {
         const d = Math.sqrt(d2) + 1e-3, f = 1 - d / MR;
         const push = f * 9 * (0.12 + 0.88 * mSpeed);
-        ax += (dxr / d) * push + mvx * f * 1.6;
-        ay += (dyr / d) * push + mvy * f * 1.6;
+        ax += (dxr / d) * push + clamp(mvx * f * 0.8, -14, 14);
+        ay += (dyr / d) * push + clamp(mvy * f * 0.8, -14, 14);
       }
     }
     const kk = 1 - Math.exp(-DRAG[l] / m * dt);
@@ -1239,11 +1242,21 @@ function updateParticles(dt, t) {
     y += vy * dt;
 
     if (l === 1) {
-      const cxi = Math.floor(x), cyi = Math.floor(y);
-      if (cyi >= 1 && cyi < WH && cxi >= 1 && cxi < WW - 1) {
-        const ni = cyi * WW + cxi;
-        if (wSolid[ni] !== 0 || wSnow[ni] >= 1) {
-          const oxi = Math.floor(ox), oyi = Math.floor(oy);
+      const dxm = x - ox, dym = y - oy;
+      const nSub = Math.max(1, Math.ceil(Math.max(Math.abs(dxm), Math.abs(dym)) / 0.9));
+      let ni = -1, fx = ox, fy = oy;
+      for (let q = 1; q <= nSub; q++) {
+        const qx = ox + dxm * q / nSub, qy = oy + dym * q / nSub;
+        const cxi = Math.floor(qx), cyi = Math.floor(qy);
+        if (cyi >= 1 && cyi < WH && cxi >= 1 && cxi < WW - 1) {
+          const ci = cyi * WW + cxi;
+          if (wSolid[ci] !== 0 || wSnow[ci] >= 1) { ni = ci; break; }
+        }
+        fx = qx; fy = qy;
+      }
+      {
+        if (ni >= 0) {
+          const oxi = Math.floor(fx), oyi = Math.floor(fy);
           if (wSolid[ni] === M_ICE) driftToShore(pa[i] * env.accum);
           else if (oyi >= 1 && oyi < WH - 1 && oxi >= 1 && oxi < WW - 1) {
             const oi = oyi * WW + oxi;
@@ -1511,12 +1524,16 @@ function drawSky(t) {
   if (cl > 0.03) {
     const drift = t * (0.6 + windNow * 0.35);
     const thr = 1 - cl * 0.7;
-    const lim = Math.min(rows, Math.ceil(hz + 2));
+    const lim = thr >= 0.94 ? 0 : Math.min(rows, Math.ceil(hz + 2));
     const sm = env.skyMid;
+    const cx0 = camX * 0.08 + drift;
     for (let r = 0; r < lim; r++) {
       const fy = r * 0.085 + camY * 0.02;
+      let va = fbm2(cx0 * 0.028, fy), vb = fbm2((cx0 + 4) * 0.028, fy);
       for (let c = 0; c < cols; c++) {
-        const v = fbm2((c + camX * 0.08 + drift) * 0.028, fy);
+        const ph = c & 3;
+        if (ph === 0 && c > 0) { va = vb; vb = fbm2((c + 4 + cx0) * 0.028, fy); }
+        const v = va + (vb - va) * ph * 0.25;
         const e = (v - thr) / 0.3;
         if (e <= 0) continue;
         const ii = clamp(e, 0, 1);
@@ -1537,14 +1554,17 @@ function mtnH(x, seed, f0) {
   for (let o = 0; o < 4; o++) { const n = noise1(x * f + seed * 13.7 + o * 31.1); h += (1 - Math.abs(n * 2 - 1)) * amp; sum += amp; amp *= 0.48; f *= 2.13; }
   return Math.pow(h / sum, 1.6);
 }
+let rangeH = new Float32Array(0);
 function drawRange(par, seed, scale, body, edge, snowC, haze, f0) {
-  const off = camX * par;
+  const off = Math.floor(camX * par);
   const base = horizon(par) - rows * 0.06;
   const sb = env.skyBot;
   const snowLine = scale * 0.6;
+  const H = rangeH.length >= cols + 2 ? rangeH : (rangeH = new Float32Array(cols + 2));
+  for (let c = -1; c <= cols; c++) H[c + 1] = mtnH(c + off, seed, f0) * scale;
   for (let c = 0; c < cols; c++) {
     const x = c + off;
-    const h = mtnH(x, seed, f0) * scale, hl = mtnH(x - 1, seed, f0) * scale, hr = mtnH(x + 1, seed, f0) * scale;
+    const h = H[c + 1], hl = H[c], hr = H[c + 2];
     const top = Math.round(base - h);
     const slope = hr - hl;
     for (let r = Math.max(0, top); r < rows; r++) {
@@ -1968,6 +1988,7 @@ function drawPanels() {
   for (const p of panels) {
     if (!p.vis) continue;
     if (!p.frame) {
+      if (heroOp < 0.02) continue;
       const pad = 2;
       for (let r = p.r0 - pad; r <= p.r1 + pad; r++) {
         if (r < 0 || r >= rows) continue;
@@ -1975,8 +1996,8 @@ function drawPanels() {
           if (c < 0 || c >= cols) continue;
           const i = r * cols + c;
           const inside = r >= p.r0 && r <= p.r1 && c >= p.c0 && c <= p.c1;
-          if (inside) { gGl[i] = 0; back(i, 0.075, 0.08, 0.09, 0.5); }
-          else { gA[i] *= 0.4; if (bA[i] < 0.25) back(i, 0.075, 0.08, 0.09, 0.25); }
+          if (inside) { gA[i] *= 1 - heroOp; back(i, 0.075, 0.08, 0.09, 0.5 * heroOp); }
+          else { gA[i] *= 1 - 0.6 * heroOp; if (bA[i] < 0.25 * heroOp) back(i, 0.075, 0.08, 0.09, 0.25 * heroOp); }
         }
       }
       continue;
@@ -2095,9 +2116,9 @@ function composite(t, dt) {
   drawWindmill(t, dt);
   drawSprites(t);
   drawShards(t);
+  drawReflection(t);
   drawParticles(1, t);
   drawParticles(2, t);
-  drawReflection(t);
   measurePanels();
   drawPanels();
   drawRings(t);
@@ -2171,7 +2192,7 @@ function render2D() {
   c.globalCompositeOperation = 'source-over';
 }
 
-let frameAvg = 16, slowFor = 0, fastFor = 0;
+let frameAvg = 16, slowFor = 0, fastFor = 0, glLost = false, frame2D = 0, heroOp = 1;
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
@@ -2184,7 +2205,8 @@ function frame(now) {
   updateEnv(scrollSm);
   updateCamera();
   updateTitle();
-  const op = clamp(1 - env.dissolve * 1.5, 0, 1).toFixed(2);
+  heroOp = clamp(1 - env.dissolve * 1.5, 0, 1);
+  const op = heroOp.toFixed(2);
   if (heroCopy.style.opacity !== op) heroCopy.style.opacity = op;
   acc += dt;
   let ticks = 0;
@@ -2194,7 +2216,8 @@ function frame(now) {
   if (atlasDirty) buildAtlas();
   composite(t, dt);
   pack();
-  if (gl) renderGL(t); else render2D();
+  if (gl) { if (!glLost) renderGL(t); }
+  else if ((++frame2D & 1) === 0) render2D(); // the 2D path is slow: draw at 30 Hz
   const ms = performance.now() - now;
   frameAvg = lerp(frameAvg, dt * 1000, 0.05);
   stats.frameMs = lerp(stats.frameMs, ms, 0.1);
@@ -2281,14 +2304,14 @@ document.querySelectorAll('[data-scramble]').forEach(el => scrIO.observe(el));
    input
    ========================================================= */
 addEventListener('pointermove', e => {
+  if (e.pointerType === 'touch') return; // a finger scrolls the page; taps still blast
   const c = e.clientX * dpr / CW, r = e.clientY * dpr / CH;
-  const now = simTime;
-  const dtm = Math.max(0.008, now - mouse.last);
+  const dtm = Math.max(0.004, (e.timeStamp - mouse.ts) / 1000);
   if (mouse.active && dtm < 0.2) {
     mouse.vx = lerp(mouse.vx, clamp((c - mouse.x) / dtm, -260, 260), 0.35);
     mouse.vy = lerp(mouse.vy, clamp((r - mouse.y) / dtm, -120, 120), 0.35);
   } else { mouse.vx = 0; mouse.vy = 0; }
-  mouse.x = c; mouse.y = r; mouse.last = now; mouse.active = true;
+  mouse.x = c; mouse.y = r; mouse.ts = e.timeStamp; mouse.last = simTime; mouse.active = true;
 }, { passive: true });
 addEventListener('pointerleave', () => { mouse.active = false; });
 document.addEventListener('mouseleave', () => { mouse.active = false; });
@@ -2303,6 +2326,8 @@ railLinks.forEach(a => a.addEventListener('click', e => {
   e.preventDefault();
   const k = +a.dataset.go;
   scrollTo({ top: anchors[k] ?? 0, behavior: reduced ? 'auto' : 'smooth' });
+  const h = sections[k] && sections[k].querySelector('h1, h2');
+  if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
 }));
 
 /* =========================================================
@@ -2343,11 +2368,12 @@ let resizeT = 0, lastW = 0, lastH = 0;
 function onResize() {
   const w = innerWidth, h = innerHeight;
   // phones resize the viewport while the address bar slides; ignore small height-only changes
-  if (w === lastW && Math.abs(h - lastH) < 140) { computeAnchors(); return; }
+  if (w === lastW && Math.abs(h - lastH) < 140 && h <= parseFloat(canvas.style.height)) { computeAnchors(); return; }
   lastW = w; lastH = h;
   layout();
 }
-addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(onResize, 120); });
+let booted = false;
+addEventListener('resize', () => { if (!booted) return; clearTimeout(resizeT); resizeT = setTimeout(onResize, 120); });
 
 async function boot() {
   try {
@@ -2360,8 +2386,23 @@ async function boot() {
     ]);
   } catch (e) { /* fall back to system fonts */ }
   buildWorld();
-  if (gl) { try { glInit(); } catch (e) { console.warn(e); gl = null; } }
+  if (gl) {
+    try { glInit(); }
+    catch (e) {
+      console.warn(e);
+      gl = null;
+      // a canvas that already holds a WebGL context cannot give a 2D one
+      const c = canvas.cloneNode(false);
+      canvas.replaceWith(c);
+      canvas = c;
+    }
+  }
   if (!gl && !ctx2d) ctx2d = canvas.getContext('2d');
+  // B3: survive a lost GPU context (phones after backgrounding, driver resets)
+  if (gl) {
+    canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); glLost = true; });
+    canvas.addEventListener('webglcontextrestored', () => { glInit(); allocTextures(); buildAtlas(); glLost = false; });
+  }
   lastW = innerWidth; lastH = innerHeight;
   layout();
   scrollSm = window.scrollY;
@@ -2370,6 +2411,8 @@ async function boot() {
   for (let l = 0; l < 3; l++) for (let k = 0; k < DENS[l] * area * env.snow; k++) spawnFlake(l, true);
   last = performance.now();
   introStart = 0;
+  booted = true;
+  if (innerWidth !== lastW || innerHeight !== lastH) onResize();
   requestAnimationFrame(frame);
   document.fonts.ready.then(() => { atlasDirty = true; buildTitle(); });
 }
