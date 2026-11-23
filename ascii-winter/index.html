@@ -1,0 +1,2311 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Первый снег</title>
+<meta name="description" content="Интерактивная зима из символов: снег с физикой, сугробы, метель, огни, озеро и северное сияние. Один HTML-файл без картинок.">
+<meta name="theme-color" content="#1c1e22">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Oswald:wght@700&display=swap">
+<style>
+:root{
+  --bg:#1c1e22;
+  --ink:#e3e6ea;
+  --ink-2:#b9bfc7;
+  --muted:#8a919b;
+  --line:#4c525b;
+  --amber:#ffb45a;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --gutter:clamp(16px,6vw,112px);
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color:var(--ink);font-family:var(--mono);-webkit-text-size-adjust:100%}
+body{margin:0;overflow-x:hidden;font-size:15px;line-height:1.65;background:var(--bg)}
+::selection{background:var(--amber);color:var(--bg)}
+a{color:inherit}
+:focus-visible{outline:1px dashed var(--amber);outline-offset:3px}
+#scene{position:fixed;left:0;top:0;display:block;z-index:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+
+/* верхняя строка */
+.bar{position:fixed;left:0;right:0;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:16px;
+  padding:14px var(--gutter);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);pointer-events:none}
+.bar b{color:var(--ink);font-weight:700}
+.caret{display:inline-block;width:.62em;height:1.05em;vertical-align:-.17em;background:var(--amber);margin-left:.4em;animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* оглавление справа */
+.rail{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:2px;font-size:11px;letter-spacing:.06em}
+.rail a{color:var(--muted);text-decoration:none;padding:3px 6px;white-space:nowrap}
+.rail a::before{content:"  "}
+.rail a[aria-current="true"]{color:var(--amber)}
+.rail a[aria-current="true"]::before{content:"> "}
+.rail a:hover{color:var(--ink)}
+.rail span{display:none}
+.rail a:hover span,.rail a[aria-current="true"] span{display:inline}
+
+main{position:relative;z-index:2}
+
+/* hero */
+.hero{position:relative;height:100vh;height:100svh;min-height:540px}
+.hero-copy{position:absolute;left:50%;top:var(--copy-top,48%);transform:translateX(-50%);width:min(46rem,calc(100% - 32px));text-align:center;padding:10px 12px}
+.kicker{margin:0 0 .8em;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.lede{margin:0 auto;max-width:40rem;font-size:clamp(15px,1.25vw,18px);line-height:1.6;color:var(--ink)}
+.lede b{color:var(--amber);font-weight:700;font-variant-numeric:tabular-nums}
+.hints{margin:1.3em 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;justify-content:center;gap:6px 22px;font-size:12px;color:var(--muted)}
+.hints kbd{font-family:inherit;color:var(--ink)}
+
+/* главы */
+.chapter{position:relative;min-height:190vh;padding:0 var(--gutter)}
+.panel{position:sticky;top:16vh;width:min(31rem,100%);padding:22px 26px 20px}
+.chapter[data-side="right"] .panel{margin-left:auto;margin-right:clamp(0px,3vw,48px)}
+.panel-head{display:flex;gap:12px;align-items:baseline;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.panel-head .num{color:var(--amber);font-weight:700}
+.panel h2{font-size:clamp(21px,2.1vw,28px);line-height:1.22;margin:.45em 0 .65em;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.panel p{margin:0 0 .85em;color:var(--ink-2)}
+.panel p.tip{font-size:13px;color:var(--muted)}
+.panel p.tip kbd{font-family:inherit;color:var(--amber)}
+.readout{display:grid;grid-template-columns:max-content 1fr;gap:3px 16px;margin:16px 0 0;padding:12px 0 0;border-top:1px dashed var(--line);font-size:13px}
+.readout dt{color:var(--muted)}
+.readout dd{margin:0;color:var(--ink);font-variant-numeric:tabular-nums;white-space:pre}
+
+/* финал */
+.finale{position:relative;min-height:175vh;padding:0 var(--gutter)}
+.finale .panel{margin:0 auto;text-align:left}
+.actions{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:18px}
+.btn{font:inherit;font-size:14px;font-weight:700;color:var(--amber);background:transparent;border:0;padding:8px 4px;cursor:pointer;letter-spacing:.02em}
+.btn::before{content:"[ "}
+.btn::after{content:" ]"}
+.btn:hover{background:var(--amber);color:var(--bg)}
+.btn[aria-pressed="true"]{color:var(--bg);background:var(--amber)}
+footer{position:relative;z-index:2;padding:28vh var(--gutter) 28px;font-size:12px;color:var(--muted);letter-spacing:.06em;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px}
+footer span{font-variant-numeric:tabular-nums}
+
+@media (max-width:900px){
+  .rail{display:none}
+}
+@media (max-width:720px){
+  body{font-size:14px}
+  .bar{padding:12px 16px;font-size:11px}
+  .bar .hide-s{display:none}
+  .chapter,.finale{min-height:175vh;padding:0 16px}
+  .panel{top:8vh;width:100%;padding:16px 18px 14px}
+  .chapter[data-side="right"] .panel{margin-right:0}
+  .panel h2{font-size:20px}
+  .readout{font-size:12px}
+  .hints{gap:4px 14px}
+  footer{padding:24vh 16px 24px}
+}
+@media (prefers-reduced-motion:reduce){
+  .caret{animation:none}
+}
+</style>
+</head>
+<body>
+<canvas id="scene" aria-hidden="true"></canvas>
+
+<div class="bar" aria-hidden="true">
+  <span><b>первый снег</b><span class="caret"></span></span>
+  <span id="chap">00 · начало</span>
+</div>
+
+<nav class="rail" aria-label="Главы">
+  <a href="#top" data-go="0">00<span> начало</span></a>
+  <a href="#ch1" data-go="1">01<span> вес</span></a>
+  <a href="#ch2" data-go="2">02<span> сугробы</span></a>
+  <a href="#ch3" data-go="3">03<span> ветер</span></a>
+  <a href="#ch4" data-go="4">04<span> огни</span></a>
+  <a href="#ch5" data-go="5">05<span> озеро</span></a>
+  <a href="#ch6" data-go="6">06<span> сияние</span></a>
+  <a href="#ch7" data-go="7">07<span> рассвет</span></a>
+</nav>
+
+<main>
+  <section class="hero" id="top" data-ch="0" data-name="начало">
+    <h1 class="sr-only">Первый снег</h1>
+    <div class="hero-copy" data-panel="bare">
+      <p class="kicker" data-scramble>// зима, собранная из текста</p>
+      <p class="lede">Здесь нет ни одной картинки. Небо, город, огни и снег — это <b data-live="cells">0</b> символов на экране, и каждый подчиняется физике: падает, копится, съезжает с крыш и светится.</p>
+      <ul class="hints">
+        <li><kbd>[↓]</kbd> листай — камера едет по городу</li>
+        <li><kbd>[мышь]</kbd> разгоняет снег</li>
+        <li><kbd>[клик]</kbd> снежный удар</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="chapter" id="ch1" data-ch="1" data-name="вес" data-side="left">
+    <article class="panel" data-panel aria-labelledby="h1t">
+      <div class="panel-head"><span class="num">01</span><span>вес</span></div>
+      <h2 id="h1t" aria-label="Снег, у которого есть вес"><span data-scramble aria-hidden="true">Снег, у которого есть вес</span></h2>
+      <p>Каждая снежинка — частица с массой и сопротивлением воздуха. Тяжёлые падают быстрее и почти не замечают ветра. Лёгкие дольше висят в воздухе и уходят вбок.</p>
+      <p>Снег идёт в три слоя глубины, и каждый слой едет со своей скоростью. Поэтому у плоского экрана появляется объём.</p>
+      <p class="tip"><kbd>&gt;</kbd> Проведи мышью сквозь снегопад: курсор тянет за собой воздух, а снежинки тормозят об него.</p>
+      <dl class="readout">
+        <dt>в воздухе</dt><dd data-live="flakes">—</dd>
+        <dt>скорость падения</dt><dd data-live="fall">—</dd>
+        <dt>слои</dt><dd data-live="layers">—</dd>
+      </dl>
+    </article>
+  </section>
+
+  <section class="chapter" id="ch2" data-ch="2" data-name="сугробы" data-side="right">
+    <article class="panel" data-panel aria-labelledby="h2t">
+      <div class="panel-head"><span class="num">02</span><span>сугробы</span></div>
+      <h2 id="h2t" aria-label="Упавший снег остаётся"><span data-scramble aria-hidden="true">Упавший снег остаётся</span></h2>
+      <p>Коснувшись земли, снег не исчезает. Он ложится на крыши, на перила забора, на ветки и даже на эту рамку — клетка за клеткой.</p>
+      <p>Где склон круче 45°, снег съезжает маленькой лавиной. У стен растут сугробы, а над трубами он тает.</p>
+      <p class="tip"><kbd>&gt;</kbd> Кликни по крыше — и сбей с неё снег.</p>
+      <dl class="readout">
+        <dt>лежит в кадре</dt><dd data-live="settled">—</dd>
+        <dt>лавин сошло</dt><dd data-live="slides">—</dd>
+        <dt>окон горит</dt><dd data-live="windows">—</dd>
+      </dl>
+    </article>
+  </section>
+
+  <section class="chapter" id="ch3" data-ch="3" data-name="ветер" data-side="left">
+    <article class="panel" data-panel aria-labelledby="h3t">
+      <div class="panel-head"><span class="num">03</span><span>ветер</span></div>
+      <h2 id="h3t" aria-label="Метель — это поле, а не направление"><span data-scramble aria-hidden="true">Метель — это поле, а не направление</span></h2>
+      <p>Ветер меняется в пространстве и во времени: порывы приходят волнами, у земли закручиваются вихри. Мельница крутится с той скоростью, которую ветер ей даёт.</p>
+      <p>Сильный ветер срывает снег с гребней сугробов. А быстрые снежинки рисуются штрихами <kbd>\ — /</kbd>, как смазанный кадр.</p>
+      <dl class="readout">
+        <dt>ветер</dt><dd data-live="wind">—</dd>
+        <dt>порывы</dt><dd data-live="gust">—</dd>
+        <dt>сорвано ветром</dt><dd data-live="lifted">—</dd>
+      </dl>
+    </article>
+  </section>
+
+  <section class="chapter" id="ch4" data-ch="4" data-name="огни" data-side="right">
+    <article class="panel" data-panel aria-labelledby="h4t">
+      <div class="panel-head"><span class="num">04</span><span>огни</span></div>
+      <h2 id="h4t" aria-label="Свет — тоже символы"><span data-scramble aria-hidden="true">Свет — тоже символы</span></h2>
+      <p>Фонари включаются по одному, пока ты листаешь. Снежинка, пролетая сквозь конус света, теплеет и гаснет, выйдя из него.</p>
+      <p>Окна, вывеска пекарни и часы на башне светятся и окрашивают снег вокруг. Часы показывают твоё время.</p>
+      <dl class="readout">
+        <dt>фонарей</dt><dd data-live="lamps">—</dd>
+        <dt>окон горит</dt><dd data-live="windows2">—</dd>
+        <dt>на башне</dt><dd data-live="clock">—</dd>
+      </dl>
+    </article>
+  </section>
+
+  <section class="chapter" id="ch5" data-ch="5" data-name="озеро" data-side="left">
+    <article class="panel" data-panel aria-labelledby="h5t">
+      <div class="panel-head"><span class="num">05</span><span>озеро</span></div>
+      <h2 id="h5t" aria-label="Лёд отражает всё, что над ним"><span data-scramble aria-hidden="true">Лёд отражает всё, что над ним</span></h2>
+      <p>Отражение собрано из тех же символов, что и мир сверху, только перевёрнутых: <kbd>/</kbd> становится <kbd>\</kbd>, <kbd>^</kbd> — <kbd>v</kbd>. Холодный оттенок и лёгкая рябь.</p>
+      <p>На лёд снег не ложится — ветер сдувает его дальше, к берегу.</p>
+      <dl class="readout">
+        <dt>отражено строк</dt><dd data-live="mirror">—</dd>
+        <dt>снег на льду</dt><dd>0 клеток</dd>
+      </dl>
+    </article>
+  </section>
+
+  <section class="chapter" id="ch6" data-ch="6" data-name="сияние" data-side="right">
+    <article class="panel" data-panel aria-labelledby="h6t">
+      <div class="panel-head"><span class="num">06</span><span>сияние</span></div>
+      <h2 id="h6t" aria-label="Небо начинает двигаться"><span data-scramble aria-hidden="true">Небо начинает двигаться</span></h2>
+      <p>Над холмом — северное сияние. Это шум, вытянутый по вертикали, и три цвета: зелёный у нижнего края, бирюзовый в середине, фиолетовый вверху.</p>
+      <p>Его свет падает на снег, и сугробы под ним становятся зеленоватыми. Снег почти перестал.</p>
+      <dl class="readout">
+        <dt>яркость сияния</dt><dd data-live="aurora">—</dd>
+        <dt>в воздухе</dt><dd data-live="flakes2">—</dd>
+      </dl>
+    </article>
+  </section>
+
+  <section class="finale" id="ch7" data-ch="7" data-name="рассвет">
+    <article class="panel" data-panel aria-labelledby="h7t">
+      <div class="panel-head"><span class="num">07</span><span>рассвет</span></div>
+      <h2 id="h7t" aria-label="Снег заканчивается"><span data-scramble aria-hidden="true">Снег заканчивается</span></h2>
+      <p>Небо светлеет, ветер стихает, последние снежинки ложатся на крыши. Вся эта зима — один HTML-файл: без картинок, без видео, без библиотек. Только текст, цвет и немного физики.</p>
+      <div class="actions">
+        <button class="btn" type="button" id="again">↑ ещё раз сначала</button>
+        <button class="btn" type="button" id="storm" aria-pressed="false">метель везде</button>
+      </div>
+    </article>
+  </section>
+</main>
+
+<footer>
+  <span>первый снег · собрано из символов · 2026</span>
+  <span data-live="perf">—</span>
+</footer>
+
+<script>
+(() => {
+'use strict';
+
+/* =========================================================
+   math
+   ========================================================= */
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function hash2(x, y) {
+  let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function noise1(x) { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return lerp(hash2(i, 17), hash2(i + 1, 17), u); }
+function noise2(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash2(xi, yi), b = hash2(xi + 1, yi), c = hash2(xi, yi + 1), d = hash2(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function fbm2(x, y) { return noise2(x, y) * 0.55 + noise2(x * 2.1 + 11.3, y * 2.1 + 4.7) * 0.3 + noise2(x * 4.3 + 3.1, y * 4.3 + 9.9) * 0.15; }
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const rng = mulberry(20261123);
+const hex = h => parseInt(h.replace('#', ''), 16);
+
+/* =========================================================
+   glyphs
+   ========================================================= */
+const GLYPHS = [], GI = new Map();
+let atlasDirty = true;
+function g(c) { let i = GI.get(c); if (i === undefined) { i = GLYPHS.length; GLYPHS.push(c); GI.set(c, i); atlasDirty = true; } return i; }
+for (const c of ' .,:;\'`"-_~=+*^v<>/\\|!()[]{}#%@&?iloO0xXAVHTYM▄▀█▓▒░‾0123456789ХЛЕБ') g(c);
+const G_DOT = g('.'), G_COMMA = g(','), G_COLON = g(':'), G_APOS = g("'"), G_BT = g('`'),
+  G_DASH = g('-'), G_UND = g('_'), G_TIL = g('~'), G_EQ = g('='), G_PLUS = g('+'), G_STAR = g('*'),
+  G_CARET = g('^'), G_V = g('v'), G_SL = g('/'), G_BS = g('\\'), G_PIPE = g('|'), G_BANG = g('!'),
+  G_LB = g('['), G_RB = g(']'), G_LP = g('('), G_RP = g(')'), G_HASH = g('#'), G_PCT = g('%'),
+  G_AT = g('@'), G_o = g('o'), G_O = g('O'), G_LOW = g('▄'), G_UP = g('▀'), G_SH3 = g('▓'),
+  G_SH2 = g('▒'), G_SH1 = g('░'), G_OVER = g('‾'), G_LT = g('<'), G_GT = g('>');
+const RAMP = [...' .:-=+*#%@'].map(g);
+const AUR = [...' .\':|!'].map(g);
+const CLOUD = [...' .-~=:'].map(g);
+const SCRAMBLE_SET = [...'#%@*+=-:.░▒▓/\\|'].map(g);
+const FLIP = new Uint8Array(256);
+function buildFlip() {
+  for (let i = 0; i < 256; i++) FLIP[i] = i;
+  const pairs = [['/', '\\'], ['^', 'v'], ['.', "'"], [',', '`'], ['▄', '▀'], ['_', '‾'], ['A', 'V']];
+  for (const [a, b] of pairs) { FLIP[g(a)] = g(b); FLIP[g(b)] = g(a); }
+}
+buildFlip();
+
+/* =========================================================
+   DOM / environment
+   ========================================================= */
+const canvas = document.getElementById('scene');
+const sections = [...document.querySelectorAll('[data-ch]')];
+const liveEls = {};
+document.querySelectorAll('[data-live]').forEach(el => { (liveEls[el.dataset.live] ||= []).push(el); });
+const railLinks = [...document.querySelectorAll('.rail a')];
+const chapEl = document.getElementById('chap');
+const heroCopy = document.querySelector('.hero-copy');
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MONO = '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+const TITLE_FONT = 'Oswald, "Arial Narrow", Impact, sans-serif';
+
+/* =========================================================
+   renderer (WebGL2, Canvas 2D fallback)
+   ========================================================= */
+let gl = null, ctx2d = null;
+try { gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: false, powerPreference: 'high-performance' }); } catch (e) { gl = null; }
+if (!gl) ctx2d = canvas.getContext('2d');
+
+const atlas = document.createElement('canvas');
+const ATLAS_COLS = 16;
+let dpr = 1, vw = 0, vh = 0, CW = 8, CH = 16, fontDev = 13, ASPECT = 2, cols = 0, rows = 0, N = 0;
+let gGl, gR, gG, gB, gA, bR, bG, bB, bA, Lr, Lg, Lb, Tr, Tg, Tb;
+let u8Glyph, u8Fg, u8Bg, u8Light;
+
+let prog, texAtlas, texGlyph, texFg, texBg, texLight, U = {};
+const VS = `#version 300 es
+in vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
+const FS = `#version 300 es
+precision highp float;
+uniform sampler2D uAtlas,uGlyph,uFg,uBg,uLight;
+uniform vec2 uCell,uRes,uAtlasPx;
+uniform float uAC,uTime,uGlow;
+uniform vec3 uTop,uMid,uBot;
+out vec4 o;
+void main(){
+  vec2 fc=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);
+  ivec2 cell=ivec2(fc/uCell);
+  vec2 lp=fc-vec2(cell)*uCell;
+  float gi=floor(texelFetch(uGlyph,cell,0).r*255.+.5);
+  vec2 ac=vec2(mod(gi,uAC),floor(gi/uAC));
+  float a=texture(uAtlas,(ac*uCell+lp)/uAtlasPx).a;
+  vec4 fg=texelFetch(uFg,cell,0);
+  vec4 bk=texelFetch(uBg,cell,0);
+  float y=fc.y/uRes.y;
+  vec3 sky=y<.55?mix(uTop,uMid,smoothstep(0.,.55,y)):mix(uMid,uBot,smoothstep(.55,1.,y));
+  vec3 c=mix(sky,bk.rgb,bk.a);
+  vec2 gs=vec2(textureSize(uGlyph,0))*uCell;
+  c+=texture(uLight,fc/gs).rgb*uGlow;
+  c=mix(c,fg.rgb,a*fg.a);
+  vec2 q=fc/uRes-.5;
+  c*=1.-dot(q,q)*.55;
+  float n=fract(sin(dot(fc+fract(uTime*.37)*91.,vec2(12.9898,78.233)))*43758.5453);
+  c+=(n-.5)*.018;
+  o=vec4(c,1.);
+}`;
+
+function glInit() {
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'p');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const mk = (filter, unit, name) => {
+    const t = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.uniform1i(gl.getUniformLocation(prog, name), unit);
+    return t;
+  };
+  texAtlas = mk(gl.NEAREST, 0, 'uAtlas');
+  texGlyph = mk(gl.NEAREST, 1, 'uGlyph');
+  texFg = mk(gl.NEAREST, 2, 'uFg');
+  texBg = mk(gl.NEAREST, 3, 'uBg');
+  texLight = mk(gl.LINEAR, 4, 'uLight');
+  for (const n of ['uCell', 'uRes', 'uAtlasPx', 'uAC', 'uTime', 'uGlow', 'uTop', 'uMid', 'uBot']) U[n] = gl.getUniformLocation(prog, n);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+}
+
+function uploadAtlas() {
+  if (!gl) return;
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texAtlas);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas);
+}
+
+function buildAtlas() {
+  const n = GLYPHS.length, ar = Math.ceil(n / ATLAS_COLS);
+  atlas.width = ATLAS_COLS * CW; atlas.height = ar * CH;
+  const a = atlas.getContext('2d');
+  a.clearRect(0, 0, atlas.width, atlas.height);
+  a.fillStyle = '#fff';
+  a.font = `500 ${fontDev}px ${MONO}`;
+  a.textAlign = 'center';
+  a.textBaseline = 'middle';
+  const unit = Math.max(1, Math.round(dpr));
+  for (let i = 1; i < n; i++) {
+    const c = GLYPHS[i];
+    const x = (i % ATLAS_COLS) * CW, y = Math.floor(i / ATLAS_COLS) * CH;
+    a.save();
+    a.beginPath(); a.rect(x, y, CW, CH); a.clip();
+    if (c === '█') a.fillRect(x, y, CW, CH);
+    else if (c === '▄') a.fillRect(x, y + (CH >> 1), CW, CH - (CH >> 1));
+    else if (c === '▀') a.fillRect(x, y, CW, CH >> 1);
+    else if (c === '░' || c === '▒' || c === '▓') {
+      // crisp ordered dither instead of the font's shade glyphs
+      for (let yy = 0; yy < CH; yy += unit) for (let xx = 0; xx < CW; xx += unit) {
+        const px = (xx / unit) | 0, py = (yy / unit) | 0;
+        let on;
+        if (c === '░') on = ((px + py * 2) & 3) === 0;
+        else if (c === '▒') on = ((px + py) & 1) === 0;
+        else on = ((px + py * 2) & 3) !== 0;
+        if (on) a.fillRect(x + xx, y + yy, unit, unit);
+      }
+    } else a.fillText(c, x + CW / 2, y + CH * 0.53);
+    a.restore();
+  }
+  atlasDirty = false;
+  uploadAtlas();
+}
+
+function allocTextures() {
+  if (!gl) return;
+  const alloc = (unit, tex, ifmt, fmt, w, h) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, ifmt, w, h, 0, fmt, gl.UNSIGNED_BYTE, null); };
+  alloc(1, texGlyph, gl.R8, gl.RED, cols, rows);
+  alloc(2, texFg, gl.RGBA8, gl.RGBA, cols, rows);
+  alloc(3, texBg, gl.RGBA8, gl.RGBA, cols, rows);
+  alloc(4, texLight, gl.RGBA8, gl.RGBA, cols, rows);
+}
+
+/* 2D fallback buffers */
+let c2Glyph, c2Fg, c2Bg, c2Light, img2Fg, img2Bg, img2Light;
+function alloc2D() {
+  const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  c2Glyph = mk(cols * CW, rows * CH);
+  c2Fg = mk(cols, rows); c2Bg = mk(cols, rows); c2Light = mk(cols, rows);
+  img2Fg = c2Fg.getContext('2d').createImageData(cols, rows);
+  img2Bg = c2Bg.getContext('2d').createImageData(cols, rows);
+  img2Light = c2Light.getContext('2d').createImageData(cols, rows);
+}
+
+/* =========================================================
+   world
+   ========================================================= */
+const WW = 1500, WH = 100, GYB = 86;
+const WN = WW * WH;
+const wSolid = new Uint8Array(WN), wGlyph = new Uint8Array(WN), wCol = new Uint32Array(WN), wTag = new Uint16Array(WN), wSnow = new Float32Array(WN);
+const groundY = new Int16Array(WW), gAvg = new Float32Array(WW);
+const M_AIR = 0, M_GROUND = 1, M_WALL = 2, M_ROOF = 3, M_WOOD = 4, M_PINE = 5, M_METAL = 6, M_ICE = 7, M_TITLE = 8, M_STONE = 9, M_SNOWMAN = 10;
+const CAP = new Uint8Array(16); CAP[M_GROUND] = 2; CAP[M_ROOF] = 2; CAP[M_WALL] = 1; CAP[M_WOOD] = 1; CAP[M_PINE] = 1; CAP[M_METAL] = 1; CAP[M_ICE] = 0; CAP[M_TITLE] = 1; CAP[M_STONE] = 1; CAP[M_SNOWMAN] = 1;
+const LAKE0 = 846, LAKE1 = 974, ICEY = 89;
+const windows = [], lamps = [], chimneys = [];
+let winOn = new Float32Array(0), lampOn = new Float32Array(0);
+const TAG_LAMP = 1000, TAG_SIGN = 1100, TAG_CLOCK = 1200;
+let windmill = null, skater = null, watchers = null;
+
+const PAL = {
+  wood:  { wall: hex('#6c5b4e'), dark: hex('#584a40'), edge: hex('#83705f'), door: hex('#8b6b50'), roof: hex('#4d535d'), roofE: hex('#6b727d'), frame: hex('#8a7563') },
+  gray:  { wall: hex('#60666e'), dark: hex('#50565e'), edge: hex('#7a8089'), door: hex('#7c7166'), roof: hex('#46404a'), roofE: hex('#655d69'), frame: hex('#878d96') },
+  brick: { wall: hex('#6b524c'), dark: hex('#594440'), edge: hex('#87685e'), door: hex('#7d6250'), roof: hex('#484e58'), roofE: hex('#676e79'), frame: hex('#8d7469') },
+  stone: { wall: hex('#666a72'), dark: hex('#565a62'), edge: hex('#80848c'), door: hex('#6f655b'), roof: hex('#4a505a'), roofE: hex('#6a717c'), frame: hex('#8a8e96') },
+};
+const PINE_C = hex('#42564c'), PINE_E = hex('#5c7366'), PINE_D = hex('#36473f'), TRUNK = hex('#5a4a3f');
+
+function inW(x, y) { return x >= 0 && x < WW && y >= 0 && y < WH; }
+function setArt(x, y, c, col, mat, tag = 0) {
+  if (!inW(x, y)) return;
+  const i = y * WW + x;
+  wGlyph[i] = typeof c === 'number' ? c : g(c);
+  wCol[i] = col; wSolid[i] = mat; wTag[i] = tag;
+}
+
+function genGround() {
+  for (let x = 0; x < WW; x++) {
+    let y = GYB + Math.round((noise1(x * 0.045 + 3.3) - 0.5) * 2.4);
+    if (x >= LAKE0 - 7 && x <= LAKE1 + 7) {
+      const e = Math.min(x - (LAKE0 - 7), (LAKE1 + 7) - x);
+      y = Math.max(y, Math.round(lerp(GYB, ICEY, clamp(e / 7, 0, 1))));
+      if (x >= LAKE0 && x <= LAKE1) y = ICEY;
+    }
+    const hill = sstep(995, 1095, x) * (1 - sstep(1340, 1440, x));
+    y = Math.round(lerp(y, 73 + (noise1(x * 0.07) - 0.5) * 2.2, hill));
+    groundY[x] = y;
+  }
+}
+function flatten(x0, x1) {
+  const mid = groundY[clamp((x0 + x1) >> 1, 0, WW - 1)];
+  for (let x = Math.max(0, x0); x <= Math.min(WW - 1, x1); x++) groundY[x] = mid;
+}
+function fillGround() {
+  for (let x = 0; x < WW; x++) for (let y = groundY[x]; y < WH; y++) {
+    const i = y * WW + x;
+    wSolid[i] = (x >= LAKE0 && x <= LAKE1 && y === ICEY) ? M_ICE : M_GROUND;
+  }
+  for (let x = 0; x < WW; x++) {
+    let s = 0, n = 0;
+    for (let k = -45; k <= 45; k++) { const xx = clamp(x + k, 0, WW - 1); s += groundY[xx]; n++; }
+    gAvg[x] = s / n;
+  }
+}
+
+function addWindow(x, y, w, h, opts = {}) {
+  const id = windows.length + 1;
+  windows.push({ th: opts.th ?? (0.12 + rng() * 0.8), tv: !!opts.tv, x, y, w, h, ph: rng() * 10 });
+  for (let r = 0; r < h; r++) {
+    setArt(x, y + r, '[', opts.frame, M_WALL);
+    setArt(x + w - 1, y + r, ']', opts.frame, M_WALL);
+    for (let c = 1; c < w - 1; c++) setArt(x + c, y + r, '#', hex('#2a2e35'), M_WALL, id);
+  }
+}
+
+function roof(xa, xb, yb, P, type) {
+  // trapezoid: up to 4 slope rows + ridge; 'a': full triangle; 'flat': single slab
+  if (type === 'flat') {
+    for (let x = xa; x <= xb; x++) setArt(x, yb, '=', P.roofE, M_ROOF);
+    return yb;
+  }
+  const maxK = type === 'a' ? 99 : clamp(Math.round((xb - xa) / 6) + 1, 2, 4);
+  let k = 0;
+  for (;;) {
+    const xl = xa + k, xr = xb - k, y = yb - k;
+    if (xl > xr) return y + 1;
+    if (xl === xr) { setArt(xl, y, '^', P.roofE, M_ROOF); return y; }
+    if (k >= maxK) {
+      for (let x = xl; x <= xr; x++) setArt(x, y, '=', P.roofE, M_ROOF);
+      return y;
+    }
+    setArt(xl, y, '/', P.roofE, M_ROOF);
+    setArt(xr, y, '\\', P.roofE, M_ROOF);
+    for (let x = xl + 1; x < xr; x++) setArt(x, y, (k & 1) ? '-' : '=', P.roof, M_ROOF);
+    k++;
+  }
+}
+
+function chimney(x) {
+  let y = 0;
+  while (y < WH && wSolid[y * WW + x] === 0 && wSolid[y * WW + x + 1] === 0) y++;
+  const top = y - 3;
+  const C = hex('#776a63'), CE = hex('#8c7f77');
+  for (let yy = top; yy < y; yy++) { setArt(x, yy, '[', CE, M_STONE); setArt(x + 1, yy, ']', C, M_STONE); }
+  chimneys.push({ x: x + 1, y: top - 0.2, acc: rng() });
+}
+
+function house(o) {
+  const { x, w, h } = o;
+  const P = PAL[o.pal || 'wood'];
+  const gy = groundY[x + (w >> 1)];
+  const top = gy - h;
+  for (let y = top; y < gy; y++) for (let xx = x; xx < x + w; xx++) {
+    const edge = xx === x || xx === x + w - 1;
+    const r = y - top;
+    let c, col;
+    if (edge) { c = '|'; col = P.edge; }
+    else if (o.style === 'logs') { c = (r & 1) ? '-' : '='; col = (r & 1) ? P.dark : P.wall; }
+    else if (o.style === 'brick') { c = ((xx - x + (r & 1) * 2) % 4 === 0) ? '|' : '_'; col = (r & 1) ? P.dark : P.wall; }
+    else { c = ((xx - x) % 3 === 0) ? '|' : ':'; col = ((xx - x) % 3 === 0) ? P.wall : P.dark; }
+    setArt(xx, y, c, col, M_WALL);
+  }
+  if (o.door != null) {
+    const dx = x + o.door;
+    for (let y = gy - 3; y < gy; y++) {
+      setArt(dx, y, '[', P.door, M_WALL);
+      setArt(dx + 1, y, y === gy - 2 ? '.' : ' ', P.door, M_WALL);
+      setArt(dx + 2, y, ']', P.door, M_WALL);
+    }
+  }
+  const wh = o.winH || 2, ww = o.winW || 4;
+  for (const wx of (o.win || [])) addWindow(x + wx, top + 1, ww, wh, { frame: P.frame, tv: o.tv === wx, th: o.th });
+  const rTop = roof(x - 1, x + w, top - 1, P, o.roof || 'trap');
+  if (o.chimney != null) chimney(x + o.chimney);
+  if (o.chimney2 != null) chimney(x + o.chimney2);
+  return { gy, top, rTop };
+}
+
+function pine(x, h) {
+  const gy = groundY[x];
+  const y0 = gy - h;
+  for (let i = 0; i < h - 2; i++) {
+    const y = y0 + i;
+    const hw = Math.round(i * 0.42 + ((i % 4) === 3 ? 1 : 0));
+    for (let xx = x - hw; xx <= x + hw; xx++) {
+      let c, col;
+      if (i === 0) { c = '^'; col = PINE_E; }
+      else if (xx === x - hw) { c = '/'; col = PINE_E; }
+      else if (xx === x + hw) { c = '\\'; col = PINE_E; }
+      else { const hh = hash2(xx, y); c = hh < 0.62 ? '^' : (hh < 0.85 ? '*' : 'A'); col = hh < 0.6 ? PINE_C : PINE_D; }
+      setArt(xx, y, c, col, M_PINE);
+    }
+  }
+  setArt(x, gy - 2, '|', TRUNK, M_WOOD);
+  setArt(x, gy - 1, '|', TRUNK, M_WOOD);
+}
+
+function fence(x0, x1) {
+  const C = hex('#6e6155'), CE = hex('#857565');
+  for (let x = x0; x <= x1; x++) {
+    const gy = groundY[x];
+    if ((x - x0) % 4 === 0) { for (let k = 1; k <= 4; k++) setArt(x, gy - k, '|', CE, M_WOOD); }
+    else { setArt(x, gy - 2, '-', C, M_WOOD); setArt(x, gy - 3, '=', C, M_WOOD); }
+  }
+}
+
+function lamp(x, th) {
+  const gy = groundY[x];
+  const C = hex('#5d636b'), CE = hex('#7b828b');
+  for (let k = 1; k <= 8; k++) setArt(x, gy - k, '|', C, M_METAL);
+  setArt(x - 1, gy - 1, '_', C, M_METAL); setArt(x + 1, gy - 1, '_', C, M_METAL);
+  const id = lamps.length;
+  setArt(x - 1, gy - 9, '(', CE, M_METAL);
+  setArt(x, gy - 9, 'o', CE, M_METAL, TAG_LAMP + id);
+  setArt(x + 1, gy - 9, ')', CE, M_METAL);
+  setArt(x - 1, gy - 10, '/', CE, M_METAL); setArt(x, gy - 10, '=', CE, M_METAL); setArt(x + 1, gy - 10, '\\', CE, M_METAL);
+  lamps.push({ x, y: gy - 9, th });
+}
+
+function line(x0, y0, x1, y1, col, mat) {
+  const dx = x1 - x0, dy = y1 - y0;
+  const n = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) * 2));
+  const ang = Math.atan2(-dy * ASPECT_WORLD, dx); // visual angle
+  const deg = ang * 180 / Math.PI;
+  let c;
+  const a = ((deg % 180) + 180) % 180;
+  if (a < 22 || a > 158) c = '_'; else if (a < 68) c = '/'; else if (a < 112) c = '|'; else c = '\\';
+  for (let k = 0; k <= n; k++) {
+    const x = Math.round(x0 + dx * k / n), y = Math.round(y0 + dy * k / n);
+    if (inW(x, y) && wSolid[y * WW + x] !== M_WOOD) setArt(x, y, c, col, mat);
+  }
+}
+const ASPECT_WORLD = 2.1;
+function bareTree(x) {
+  const gy = groundY[x];
+  const C = hex('#5d5048'), CE = hex('#74655b');
+  const branch = (bx, by, ang, len, depth) => {
+    const ex = bx + Math.cos(ang) * len * ASPECT_WORLD, ey = by - Math.sin(ang) * len;
+    line(bx, by, ex, ey, depth > 2 ? C : CE, M_WOOD);
+    if (depth <= 0) return;
+    const spread = 0.45 + rng() * 0.25;
+    branch(ex, ey, ang + spread, len * (0.62 + rng() * 0.1), depth - 1);
+    branch(ex, ey, ang - spread, len * (0.62 + rng() * 0.1), depth - 1);
+    if (rng() < 0.35) branch(ex, ey, ang + (rng() - 0.5) * 0.3, len * 0.5, depth - 2);
+  };
+  for (let k = 1; k <= 6; k++) { setArt(x, gy - k, '|', C, M_WOOD); setArt(x + 1, gy - k, '|', C, M_WOOD); }
+  branch(x + 0.5, gy - 6, Math.PI / 2 + 0.25, 4.5, 4);
+  branch(x + 0.5, gy - 6, Math.PI / 2 - 0.35, 4.2, 4);
+}
+
+function snowman(x) {
+  const gy = groundY[x];
+  const W = hex('#dfe3e8'), D = hex('#2b2e33'), A = hex('#6c5a4a'), N = hex('#d98a46');
+  const rowsArt = [
+    ['  _[_]_  ', 'D'],
+    ['  (o>o)  ', 'H'],
+    [' /( : )\\ ', 'B'],
+    ['  (  :  ) ', 'B'],
+    ['  (_____) ', 'B'],
+  ];
+  const h = rowsArt.length;
+  for (let r = 0; r < h; r++) {
+    const s = rowsArt[r][0];
+    for (let k = 0; k < s.length; k++) {
+      const c = s[k]; if (c === ' ') continue;
+      let col = W;
+      if (r === 0) col = D;
+      else if (c === 'o' || c === ':') col = D;
+      else if (c === '>') col = N;
+      else if (c === '/' || c === '\\') col = A;
+      setArt(x - 4 + k, gy - h + r, c, col, M_SNOWMAN);
+    }
+  }
+}
+
+function bakery(x) {
+  const w = 22, h = 8;
+  const P = PAL.brick;
+  const { gy, top } = house({ x, w, h, pal: 'brick', style: 'brick', roof: 'trap', chimney: 17, door: 15 });
+  const word = 'ХЛЕБ';
+  const sx = x + 4;
+  setArt(sx - 1, top + 1, '[', P.frame, M_WALL);
+  for (let k = 0; k < word.length; k++) setArt(sx + k * 2, top + 1, word[k], hex('#3a2f2a'), M_WALL, TAG_SIGN + k);
+  for (let k = 0; k < word.length - 1; k++) setArt(sx + k * 2 + 1, top + 1, ' ', P.wall, M_WALL);
+  setArt(sx + word.length * 2 - 1, top + 1, ']', P.frame, M_WALL);
+  addWindow(x + 2, top + 3, 10, 3, { frame: P.frame, th: 0.55 });
+}
+
+function tower(x) {
+  const w = 9, h = 22;
+  const P = PAL.stone;
+  const gy = groundY[x + 4];
+  const top = gy - h;
+  for (let y = top; y < gy; y++) for (let xx = x; xx < x + w; xx++) {
+    const edge = xx === x || xx === x + w - 1;
+    const r = y - top;
+    const c = edge ? '|' : (((xx - x + (r & 1) * 2) % 4 === 0) ? '|' : '_');
+    setArt(xx, y, c, edge ? P.edge : ((r & 1) ? P.dark : P.wall), M_WALL);
+  }
+  // clock [HH:MM]
+  setArt(x + 1, top + 3, '[', P.frame, M_WALL);
+  for (let k = 0; k < 5; k++) setArt(x + 2 + k, top + 3, '0', hex('#2a2e35'), M_WALL, TAG_CLOCK + k);
+  setArt(x + 7, top + 3, ']', P.frame, M_WALL);
+  // belfry arch
+  setArt(x + 3, top + 7, '(', P.frame, M_WALL); setArt(x + 4, top + 7, ' ', P.dark, M_WALL); setArt(x + 5, top + 7, ')', P.frame, M_WALL);
+  addWindow(x + 3, top + 12, 3, 2, { frame: P.frame, th: 0.7 });
+  // door
+  for (let y = gy - 3; y < gy; y++) { setArt(x + 3, y, '[', P.door, M_WALL); setArt(x + 4, y, ' ', P.door, M_WALL); setArt(x + 5, y, ']', P.door, M_WALL); }
+  // spire
+  const sp = roof(x - 1, x + w, top - 1, P, 'a');
+  setArt(x + 4, sp - 1, '|', P.roofE, M_METAL);
+  setArt(x + 4, sp - 2, '+', P.roofE, M_METAL);
+}
+
+function windmillAt(x) {
+  const gy = groundY[x + 4];
+  const h = 15;
+  const C = hex('#6a6058'), CE = hex('#857a70');
+  for (let r = 0; r < h; r++) {
+    const y = gy - 1 - r;
+    const hw = Math.round(4 - r * 0.17);
+    for (let xx = x + 4 - hw; xx <= x + 4 + hw; xx++) {
+      const edge = xx === x + 4 - hw ? '/' : xx === x + 4 + hw ? '\\' : null;
+      const c = edge || ((r % 3 === 0) ? '=' : ':');
+      setArt(xx, y, c, edge ? CE : C, M_WALL);
+    }
+  }
+  for (let y = gy - 3; y < gy; y++) { setArt(x + 3, y, '[', CE, M_WALL); setArt(x + 4, y, ' ', C, M_WALL); setArt(x + 5, y, ']', CE, M_WALL); }
+  addWindow(x + 3, gy - 9, 3, 1, { frame: CE, th: 0.45 });
+  roof(x + 1, x + 7, gy - 1 - h, PAL.wood, 'a');
+  windmill = { x: x + 4, y: gy - 1 - h + 1, ang: 0 };
+}
+
+function buildWorld() {
+  genGround();
+  const sites = [
+    [106, 127], [129, 146], [304, 333], [334, 361], [363, 379], [396, 418], [421, 435],
+    [566, 579], [622, 634], [658, 686], [698, 709], [720, 738], [750, 770], [779, 795], [1088, 1111],
+  ];
+  for (const [a, b] of sites) flatten(a, b);
+  fillGround();
+
+  // hero
+  [[4, 15], [12, 21], [22, 13], [31, 9], [44, 7], [176, 16], [186, 12], [196, 9]].forEach(([x, h]) => pine(x, h));
+  house({ x: 108, w: 17, h: 6, pal: 'wood', style: 'logs', roof: 'trap', chimney: 4, win: [2, 11], door: 7 });
+  house({ x: 131, w: 13, h: 5, pal: 'gray', style: 'planks', roof: 'a', chimney: 9, win: [2], door: 8 });
+  fence(148, 172);
+
+  // 01 weight
+  [[208, 17], [217, 12], [281, 21], [293, 13]].forEach(([x, h]) => pine(x, h));
+  snowman(244);
+  lamp(262, 0.35);
+
+  // 02 drifts
+  house({ x: 306, w: 18, h: 6, pal: 'brick', style: 'brick', roof: 'trap', chimney: 13, win: [2, 11], door: 7 });
+  house({ x: 336, w: 23, h: 7, pal: 'wood', style: 'logs', roof: 'trap', chimney: 4, chimney2: 17, win: [2, 8, 16], door: 13, tv: 8 });
+  house({ x: 365, w: 12, h: 5, pal: 'gray', style: 'planks', roof: 'a', win: [2], door: 7 });
+  pine(386, 17);
+  house({ x: 398, w: 19, h: 6, pal: 'wood', style: 'logs', roof: 'trap', chimney: 14, win: [2, 12], door: 8 });
+  house({ x: 423, w: 11, h: 5, pal: 'brick', style: 'brick', roof: 'a', chimney: 2, win: [6], door: 1 });
+  fence(438, 466);
+  [[472, 14], [480, 10]].forEach(([x, h]) => pine(x, h));
+
+  // 03 wind
+  fence(490, 560);
+  bareTree(526);
+  windmillAt(568);
+  fence(584, 616);
+  pine(612, 22);
+  house({ x: 624, w: 10, h: 4, pal: 'wood', style: 'planks', roof: 'a', door: 3 });
+  pine(642, 12);
+
+  // 04 lights
+  lamp(653, 0.25);
+  bakery(661);
+  lamp(692, 0.4);
+  tower(700);
+  lamp(714, 0.55);
+  house({ x: 722, w: 16, h: 7, pal: 'gray', style: 'planks', roof: 'trap', chimney: 11, win: [2, 10], door: 6 });
+  lamp(745, 0.68);
+  house({ x: 752, w: 18, h: 6, pal: 'brick', style: 'brick', roof: 'trap', chimney: 4, win: [2, 12], door: 8 });
+  lamp(774, 0.8);
+  house({ x: 781, w: 14, h: 6, pal: 'wood', style: 'logs', roof: 'a', win: [2, 9], door: 6 });
+  lamp(805, 0.9);
+  lamp(826, 0.95);
+
+  // 05 lake
+  [[832, 15], [840, 11], [984, 13], [992, 19], [1004, 10]].forEach(([x, h]) => pine(x, h));
+  house({ x: 903, w: 8, h: 3, pal: 'wood', style: 'planks', roof: 'flat', win: [2], winW: 3, winH: 1, door: 5, th: 0.2 });
+  skater = { c: 905, span: 50 };
+
+  // 06–07 hill
+  [[1048, 10], [1062, 14], [1074, 9], [1131, 15], [1142, 18], [1156, 11], [1180, 14], [1212, 16], [1243, 12], [1272, 17], [1300, 13]].forEach(([x, h]) => pine(x, h));
+  house({ x: 1090, w: 18, h: 6, pal: 'wood', style: 'logs', roof: 'trap', chimney: 14, win: [2, 10], winW: 5, door: 7, th: 0.05 });
+  watchers = { x: 1115 };
+  fence(1160, 1176);
+
+  winOn = new Float32Array(windows.length);
+  lampOn = new Float32Array(lamps.length);
+  preSnow();
+}
+
+function preSnow() {
+  for (let x = 0; x < WW; x++) {
+    let y = 0;
+    while (y < WH - 1 && wSolid[y * WW + x] === 0) y++;
+    const m = wSolid[y * WW + x];
+    if (m === M_ICE || m === M_TITLE || y < 2) continue;
+    if (m === M_GROUND) {
+      wSnow[(y - 1) * WW + x] = 1;
+      wSnow[(y - 2) * WW + x] = 0.2 + hash2(x, 3) * 0.5;
+    } else {
+      wSnow[(y - 1) * WW + x] = 0.45 + hash2(x, 5) * 0.55;
+    }
+  }
+  // snow on every upward-facing ledge, not only the first one from the sky
+  for (let y = 2; y < WH - 1; y++) for (let x = 1; x < WW - 1; x++) {
+    const i = y * WW + x;
+    if (wSolid[i] || wSnow[i] > 0) continue;
+    const b = wSolid[i + WW];
+    if (b === M_PINE || b === M_WOOD || b === M_METAL || b === M_ROOF || b === M_STONE || b === M_SNOWMAN) wSnow[i] = 0.4 + hash2(x, y) * 0.5;
+  }
+}
+
+/* =========================================================
+   chapters
+   ========================================================= */
+const C3 = (a, b, c) => [a, b, c];
+const NIGHT = { skyTop: C3(0.072, 0.078, 0.09), skyMid: C3(0.128, 0.136, 0.152), skyBot: C3(0.205, 0.215, 0.235), amb: C3(0.8, 0.84, 0.92) };
+const CHAPS = [
+  { camK: 7, wind: 0.7, turb: 0.45, snow: 0.8, win: 0.32, lamps: 0, aurora: 0, dawn: 0, stars: 1, moon: 1, clouds: 0.45, fog: 0.5, accum: 1, ...NIGHT },
+  { x: 250, camK: 8, wind: 0.35, turb: 0.35, snow: 1.0, win: 0.4, lamps: 0.2, aurora: 0, dawn: 0, stars: 0.9, moon: 1, clouds: 0.5, fog: 0.5, accum: 1, ...NIGHT },
+  { x: 370, camK: 7, wind: 1.1, turb: 0.55, snow: 1.05, win: 0.62, lamps: 0.2, aurora: 0, dawn: 0, stars: 0.7, moon: 0.9, clouds: 0.6, fog: 0.6, accum: 1.2, ...NIGHT },
+  { x: 560, camK: 7, wind: 8.5, turb: 1.7, snow: 1.7, win: 0.62, lamps: 0.2, aurora: 0, dawn: 0, stars: 0, moon: 0.1, clouds: 1, fog: 1, accum: 1,
+    skyTop: C3(0.165, 0.172, 0.182), skyMid: C3(0.245, 0.252, 0.262), skyBot: C3(0.33, 0.337, 0.345), amb: C3(0.9, 0.92, 0.96) },
+  { x: 735, camK: 7, wind: 1.0, turb: 0.5, snow: 0.8, win: 1, lamps: 1, aurora: 0, dawn: 0, stars: 0.6, moon: 0.7, clouds: 0.45, fog: 0.55, accum: 1,
+    skyTop: C3(0.07, 0.07, 0.074), skyMid: C3(0.13, 0.122, 0.12), skyBot: C3(0.235, 0.205, 0.185), amb: C3(0.68, 0.7, 0.78) },
+  { x: 910, camK: 8, wind: 0.6, turb: 0.4, snow: 0.45, win: 1, lamps: 0.9, aurora: 0.05, dawn: 0, stars: 1, moon: 1, clouds: 0.3, fog: 0.7, accum: 1,
+    skyTop: C3(0.06, 0.068, 0.08), skyMid: C3(0.11, 0.122, 0.14), skyBot: C3(0.18, 0.2, 0.225), amb: C3(0.74, 0.8, 0.9) },
+  { x: 1086, camK: 5, wind: 0.4, turb: 0.3, snow: 0.18, win: 1, lamps: 0, aurora: 1, dawn: 0, stars: 1, moon: 0.25, clouds: 0.05, fog: 0.3, accum: 1,
+    skyTop: C3(0.045, 0.062, 0.07), skyMid: C3(0.075, 0.105, 0.115), skyBot: C3(0.115, 0.155, 0.165), amb: C3(0.66, 0.86, 0.82) },
+  { x: 1150, camK: 7, wind: 0.2, turb: 0.2, snow: 0, win: 0.12, lamps: 0, aurora: 0.08, dawn: 1, stars: 0, moon: 0, clouds: 0.35, fog: 0.6, accum: 1,
+    skyTop: C3(0.34, 0.37, 0.42), skyMid: C3(0.56, 0.555, 0.565), skyBot: C3(0.79, 0.7, 0.615), amb: C3(1.02, 0.96, 0.9) },
+];
+const NUM_KEYS = ['camK', 'wind', 'turb', 'snow', 'win', 'lamps', 'aurora', 'dawn', 'stars', 'moon', 'clouds', 'fog', 'accum'];
+const COL_KEYS = ['skyTop', 'skyMid', 'skyBot', 'amb'];
+const env = { x: 0, dissolve: 0, chapter: 0, skyTop: [0, 0, 0], skyMid: [0, 0, 0], skyBot: [0, 0, 0], amb: [1, 1, 1] };
+let anchors = [];
+let storm = false;
+
+function computeAnchors() {
+  const maxS = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+  anchors = sections.map((s, i) => {
+    if (i === 0) return 0;
+    const top = s.offsetTop, h = s.offsetHeight;
+    return Math.min(maxS, top + h * 0.5 - innerHeight * 0.5);
+  });
+  for (let i = 1; i < anchors.length; i++) anchors[i] = Math.max(anchors[i], anchors[i - 1] + 1);
+}
+
+function updateEnv(sy) {
+  let i = 0;
+  while (i < anchors.length - 2 && sy >= anchors[i + 1]) i++;
+  const a = anchors[i], b = anchors[i + 1];
+  const t = clamp((sy - a) / Math.max(1, b - a), 0, 1);
+  const hold = sstep(0.16, 0.84, t);
+  const tt = hold * 0.88 + t * 0.12;
+  const A = CHAPS[i], B = CHAPS[i + 1];
+  for (const k of NUM_KEYS) env[k] = lerp(A[k], B[k], tt);
+  for (const k of COL_KEYS) for (let j = 0; j < 3; j++) env[k][j] = lerp(A[k][j], B[k][j], tt);
+  const heroX = Math.max(cols / 2, 60);
+  const ax = i === 0 ? heroX : A.x, bx = B.x;
+  env.x = lerp(ax, bx, tt);
+  env.chapter = tt < 0.5 ? i : i + 1;
+  env.dissolve = clamp((sy - innerHeight * 0.03) / (innerHeight * 0.62), 0, 1);
+  if (storm) { env.wind = Math.max(env.wind, 6.5); env.snow = Math.max(env.snow, 1.5); env.turb = Math.max(env.turb, 1.4); }
+  if (reduced) env.snow *= 0.4;
+}
+
+/* =========================================================
+   camera
+   ========================================================= */
+let camX = 0, camY = 0, camXi = 0, camYi = 0, heroCamY = 0;
+function camTargetY(cx, k) {
+  const gx = clamp(Math.round(cx), 0, WW - 1);
+  return Math.min(WH - rows, gAvg[gx] + k - rows);
+}
+function updateCamera() {
+  camX = env.x - cols / 2;
+  camY = camTargetY(env.x, env.camK);
+  camXi = Math.round(camX);
+  camYi = Math.round(camY);
+}
+
+/* =========================================================
+   title
+   ========================================================= */
+let tIdx = new Int32Array(0), tTh = new Float32Array(0), tX = new Int16Array(0), tY = new Int16Array(0), tGl = new Uint8Array(0), tSeed = new Float32Array(0), tN = 0;
+let titleTop = 0, titleH = 1;
+function buildTitle() {
+  for (let k = 0; k < tN; k++) { const i = tIdx[k]; if (wSolid[i] === M_TITLE) wSolid[i] = 0; wGlyph[i] = 0; wSnow[i] = 0; }
+  tN = 0;
+  const two = cols < 120;
+  const lines = two ? ['ПЕРВЫЙ', 'СНЕГ'] : ['ПЕРВЫЙ СНЕГ'];
+  heroCamY = Math.round(camTargetY(Math.max(cols / 2, 60), CHAPS[0].camK));
+  const maxW = Math.min(cols - (two ? 4 : 10), 230);
+  const maxH = Math.round(rows * (two ? 0.36 : 0.27));
+  // sample cells taller than they are wide; a stretch > 1 makes letters taller than the font draws them
+  const stretch = two ? 1.85 : 1.12;
+  const SX = 4, SY = Math.max(2, Math.round(4 * ASPECT / stretch));
+  const cv = document.createElement('canvas');
+  cv.width = maxW * SX; cv.height = maxH * SY;
+  const c2 = cv.getContext('2d', { willReadFrequently: true });
+  let fs = 100;
+  c2.font = `700 ${fs}px ${TITLE_FONT}`;
+  let widest = 0, asc = 0, desc = 0;
+  for (const l of lines) { const m = c2.measureText(l); widest = Math.max(widest, m.width); asc = Math.max(asc, m.actualBoundingBoxAscent || fs * 0.72); desc = Math.max(desc, m.actualBoundingBoxDescent || 0); }
+  const gap = two ? 0.16 : 0.28;
+  const blockH = (asc + desc) * lines.length + asc * gap * (lines.length - 1);
+  const scale = Math.min(cv.width * 0.985 / widest, cv.height * 0.98 / blockH);
+  fs *= scale; asc *= scale; desc *= scale;
+  c2.font = `700 ${fs}px ${TITLE_FONT}`;
+  c2.fillStyle = '#fff';
+  c2.textAlign = 'center';
+  c2.textBaseline = 'alphabetic';
+  const totalH = (asc + desc) * lines.length + asc * gap * (lines.length - 1);
+  let y = (cv.height - totalH) / 2 + asc;
+  for (const l of lines) { c2.fillText(l, cv.width / 2, y); y += asc + desc + asc * gap; }
+  const data = c2.getImageData(0, 0, cv.width, cv.height).data;
+  const cov = new Float32Array(maxW * maxH);
+  for (let cy = 0; cy < maxH; cy++) for (let cx = 0; cx < maxW; cx++) {
+    let s = 0;
+    for (let yy = 0; yy < SY; yy++) { const row = (cy * SY + yy) * cv.width; for (let xx = 0; xx < SX; xx++) s += data[(row + cx * SX + xx) * 4 + 3]; }
+    cov[cy * maxW + cx] = s / (SX * SY * 255);
+  }
+  let minY = maxH, maxY = -1;
+  for (let cy = 0; cy < maxH; cy++) for (let cx = 0; cx < maxW; cx++) if (cov[cy * maxW + cx] > 0.32) { minY = Math.min(minY, cy); maxY = Math.max(maxY, cy); }
+  if (maxY < 0) return;
+  const usedH = maxY - minY + 1;
+  titleTop = heroCamY + Math.round(rows * (two ? 0.15 : 0.15));
+  titleH = usedH;
+  const x0 = Math.floor((cols - maxW) / 2) + Math.round(Math.max(cols / 2, 60) - cols / 2);
+  const list = [];
+  for (let cy = minY; cy <= maxY; cy++) for (let cx = 0; cx < maxW; cx++) {
+    const v = cov[cy * maxW + cx];
+    if (v <= 0.4) continue;
+    const wx = x0 + cx, wy = titleTop + (cy - minY);
+    if (!inW(wx, wy)) continue;
+    const i = wy * WW + wx;
+    if (wSolid[i] !== 0) continue;
+    const inner = (cov[cy * maxW + cx - 1] > 0.32) + (cov[cy * maxW + cx + 1] > 0.32) + (cy > 0 && cov[(cy - 1) * maxW + cx] > 0.32) + (cy < maxH - 1 && cov[(cy + 1) * maxW + cx] > 0.32);
+    const glyph = (v > 0.68 || inner >= 4) ? G_HASH : G_PLUS;
+    list.push([i, wx, wy, glyph, cx / maxW]);
+  }
+  tN = list.length;
+  tIdx = new Int32Array(tN); tTh = new Float32Array(tN); tX = new Int16Array(tN); tY = new Int16Array(tN); tGl = new Uint8Array(tN); tSeed = new Float32Array(tN);
+  for (let k = 0; k < tN; k++) {
+    const [i, wx, wy, gl_, nx] = list[k];
+    tIdx[k] = i; tX[k] = wx; tY[k] = wy; tGl[k] = gl_;
+    tSeed[k] = hash2(wx, wy);
+    tTh[k] = 0.04 + nx * 0.42 + hash2(wx * 3, wy * 7) * 0.32;
+    wSolid[i] = M_TITLE; wGlyph[i] = gl_; wSnow[i] = 0;
+  }
+  // free cells under the title of stale snow, keep the copy clear of the letters
+  const bottomRow = titleTop + usedH - heroCamY;
+  heroCopy.style.setProperty('--copy-top', ((bottomRow + 3) * CH / dpr) + 'px');
+}
+function updateTitle() {
+  const d = env.dissolve;
+  for (let k = 0; k < tN; k++) {
+    const i = tIdx[k];
+    const released = d > tTh[k];
+    if (released) { if (wSolid[i] === M_TITLE) wSolid[i] = 0; }
+    else if (wSolid[i] === 0) { wSolid[i] = M_TITLE; wSnow[i] = 0; }
+  }
+}
+
+/* =========================================================
+   particles
+   ========================================================= */
+const MAXP = 9000;
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP), pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP),
+  pm = new Float32Array(MAXP), pa = new Float32Array(MAXP), plife = new Float32Array(MAXP), pmax = new Float32Array(MAXP), pseed = new Float32Array(MAXP);
+const play = new Uint8Array(MAXP), pkind = new Uint8Array(MAXP);
+let pn = 0;
+const K_FLAKE = 0, K_CHUNK = 1, K_SMOKE = 2;
+const PAR = [0.55, 1, 1.5], PARY = [0.6, 1, 1.15];
+const TERM = [2.4, 5.0, 8.6];
+const DRAG = [3.0, 2.1, 1.35];
+const WINDF = [0.7, 1, 1.25];
+const DENS = [62, 42, 4.5];
+const layerCount = [0, 0, 0];
+let windNow = 0, gustNow = 0;
+
+function killP(i) {
+  const j = --pn;
+  if (i === j) return;
+  px[i] = px[j]; py[i] = py[j]; pvx[i] = pvx[j]; pvy[i] = pvy[j]; pm[i] = pm[j]; pa[i] = pa[j];
+  plife[i] = plife[j]; pmax[i] = pmax[j]; pseed[i] = pseed[j]; play[i] = play[j]; pkind[i] = pkind[j];
+}
+function placeFlake(i, l, anywhere) {
+  const cx = camX * PAR[l], cy = camY * PARY[l];
+  px[i] = cx - 10 + Math.random() * (cols + 20);
+  py[i] = anywhere ? cy - 2 + Math.random() * (rows + 2) : cy - 1 - Math.random() * 5;
+  const m = 0.55 + Math.random() * 0.9;
+  pm[i] = m;
+  pvx[i] = windNow * WINDF[l];
+  pvy[i] = TERM[l] * (0.55 + 0.5 * m);
+  pa[i] = 0.07 + 0.11 * m;
+  pseed[i] = Math.random() * 1000;
+  plife[i] = 0;
+}
+function spawnFlake(l, anywhere) {
+  if (pn >= MAXP) return;
+  const i = pn++;
+  play[i] = l; pkind[i] = K_FLAKE;
+  placeFlake(i, l, anywhere);
+}
+function eject(x, y, amt, vx, vy) {
+  if (pn >= MAXP) return;
+  const i = pn++;
+  px[i] = x + 0.5; py[i] = y + 0.4; pvx[i] = vx; pvy[i] = vy; pm[i] = 1.6; pa[i] = amt;
+  plife[i] = 0; pmax[i] = 0; pseed[i] = Math.random() * 1000; play[i] = 1; pkind[i] = K_CHUNK;
+}
+function spawnSmoke(x, y) {
+  if (pn >= MAXP) return;
+  const i = pn++;
+  px[i] = x + (Math.random() - 0.5) * 0.6; py[i] = y; pvx[i] = 0; pvy[i] = -1.8 - Math.random();
+  pm[i] = 1; pa[i] = 0; plife[i] = 0; pmax[i] = 4 + Math.random() * 2.5; pseed[i] = Math.random() * 1000;
+  play[i] = 1; pkind[i] = K_SMOKE;
+}
+
+/* snow deposition */
+const stats = { settled: 0, slides: 0, lifted: 0, fallSum: 0, fallN: 0, frameMs: 16, mirror: 0, lit: 0, litTotal: 0, lampsOn: 0 };
+function depositAt(i, amt) {
+  let guard = 0;
+  while (wSnow[i] >= 1) { i -= WW; if (i < WW || wSolid[i] !== 0 || ++guard > 3) return false; }
+  const b = i + WW;
+  if (!(wSolid[b] !== 0 || wSnow[b] >= 1)) return false;
+  let d = 0, j = b;
+  while (wSolid[j] === 0 && wSnow[j] >= 1 && d < 9) { d++; j += WW; }
+  const base = wSolid[j];
+  let cap = CAP[base];
+  if (base === M_GROUND) {
+    const l = wSolid[i - 1], r = wSolid[i + 1];
+    if (l === M_WALL || l === M_STONE || r === M_WALL || r === M_STONE) cap += 2;
+    if (windNow > 4) cap += 1;
+  }
+  if (d >= cap) return false;
+  wSnow[i] = Math.min(1, wSnow[i] + amt);
+  return true;
+}
+
+/* cellular automaton: settle, slide, lift, melt */
+let tickN = 0;
+function snowTick() {
+  tickN++;
+  const x0 = Math.max(1, camXi - 70), x1 = Math.min(WW - 2, camXi + cols + 70);
+  const yTop = Math.max(1, camYi - 30);
+  const dir = (tickN & 1) ? 1 : -1;
+  const slideP = 0.012 + Math.abs(windNow) * 0.0025;
+  const liftP = Math.max(0, Math.abs(windNow) - 3.2) * 0.0022;
+  const wb = clamp(windNow * 0.06, -0.35, 0.35);
+  let settled = 0;
+  const vx0 = camXi, vx1 = camXi + cols, vy0 = camYi, vy1 = camYi + rows;
+  for (let y = WH - 2; y >= yTop; y--) {
+    const rowBase = y * WW;
+    for (let k = 0; k <= x1 - x0; k++) {
+      const x = dir > 0 ? x0 + k : x1 - k;
+      const i = rowBase + x;
+      const s = wSnow[i];
+      if (s <= 0) continue;
+      if (wSolid[i] !== 0) { wSnow[i] = 0; continue; }
+      if (s > 0.25 && x >= vx0 && x < vx1 && y >= vy0 && y < vy1) settled++;
+      const b = i + WW;
+      const sb = wSnow[b];
+      if (wSolid[b] === 0 && sb < 1) {
+        if (sb === 0 && wSolid[b + WW] === 0 && wSnow[b + WW] === 0) {
+          if (s > 0.15) eject(x, y, s, (Math.random() - 0.5) * 0.8, 0.5);
+          wSnow[i] = 0; continue;
+        }
+        const t = Math.min(s, 1 - sb);
+        wSnow[b] = sb + t; wSnow[i] = s - t;
+        continue;
+      }
+      const exposed = wSolid[i - WW] === 0 && wSnow[i - WW] < 0.02;
+      // levelling: a top layer spreads into a lower neighbour on the same support
+      if (exposed && Math.random() < 0.22) {
+        const d = Math.random() < 0.5 + wb ? 1 : -1, n = i + d;
+        const sn = wSnow[n];
+        if (wSolid[n] === 0 && sn < s - 0.3 && (wSolid[n + WW] !== 0 || wSnow[n + WW] >= 1)) {
+          const q = (s - sn) * 0.3;
+          wSnow[n] = sn + q; wSnow[i] = s - q;
+          continue;
+        }
+      }
+      if (exposed && liftP > 0 && s > 0.3 && Math.random() < liftP) {
+        const take = Math.min(s, 0.35);
+        wSnow[i] = s - take;
+        if (pn < MAXP) {
+          const j = pn++;
+          px[j] = x + Math.random(); py[j] = y + 0.2; pvx[j] = windNow * 1.1; pvy[j] = -1.2 - Math.random() * 1.5;
+          pm[j] = 0.6; pa[j] = take; plife[j] = 0; pmax[j] = 0; pseed[j] = Math.random() * 1000; play[j] = 1; pkind[j] = K_FLAKE;
+        }
+        stats.lifted++;
+        continue;
+      }
+      if (s >= 0.999) {
+        if (Math.random() < slideP) {
+          const d = (Math.random() < 0.5 + wb) ? 1 : -1;
+          const side = i + d, diag = b + d;
+          if (wSolid[side] === 0 && wSnow[side] < 0.3 && wSolid[diag] === 0 && wSnow[diag] < 1) {
+            const supp = wSolid[diag + WW] !== 0 || wSnow[diag + WW] >= 1;
+            if (!supp) { eject(x + d, y + 1, 1, d * 1.2 + windNow * 0.2, 1); stats.slides++; }
+            else { const room = 1 - wSnow[diag]; wSnow[diag] += room; wSnow[i] = 1 - room; }
+            if (wSnow[i] < 1e-3) wSnow[i] = 0;
+            continue;
+          }
+        }
+      }
+    }
+  }
+  stats.settled = settled;
+  // chimneys melt the snow right around them
+  for (const c of chimneys) {
+    if (c.x < x0 || c.x > x1) continue;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -2; dx <= 1; dx++) {
+      const yy = Math.floor(c.y) + dy, xx = c.x + dx;
+      if (!inW(xx, yy)) continue;
+      const i = yy * WW + xx;
+      if (wSnow[i] > 0) wSnow[i] = Math.max(0, wSnow[i] - 0.05);
+    }
+  }
+  // panel snow relaxes like a tiny sand pile
+  for (const p of panels) {
+    if (!p.snow) continue;
+    const s = p.snow, n = s.length;
+    for (let k = 0; k < n - 1; k++) {
+      const d = s[k] - s[k + 1];
+      if (d > 1.1) { s[k] -= 0.25; s[k + 1] += 0.25; } else if (d < -1.1) { s[k] += 0.25; s[k + 1] -= 0.25; }
+    }
+    if (s[0] > 0.6) s[0] -= 0.1;
+    if (s[n - 1] > 0.6) s[n - 1] -= 0.1;
+  }
+}
+
+/* pointer */
+const mouse = { x: -999, y: -999, vx: 0, vy: 0, active: false, last: 0 };
+const rings = [];
+
+function updateParticles(dt, t) {
+  gustNow = 0.6 + 0.8 * noise1(t * 0.32 + 4);
+  windNow = env.wind * gustNow;
+  layerCount[0] = layerCount[1] = layerCount[2] = 0;
+  let fallSum = 0, fallN = 0;
+  const MR = 7, MR2 = MR * MR;
+  const mActive = mouse.active && (t - mouse.last) < 2.5;
+  const mvx = mouse.vx / ASPECT, mvy = mouse.vy;
+  const target = [0, 0, 0];
+  const area = cols * rows / 1000;
+  for (let l = 0; l < 3; l++) target[l] = Math.round(DENS[l] * area * env.snow * quality);
+
+  for (let i = pn - 1; i >= 0; i--) {
+    const k = pkind[i];
+    if (k === K_SMOKE) {
+      plife[i] += dt;
+      const a = plife[i] / pmax[i];
+      if (a >= 1) { killP(i); continue; }
+      const tb = (noise2(px[i] * 0.08 + t * 0.6, py[i] * 0.12 + pseed[i]) - 0.5) * 2;
+      pvx[i] += (windNow * 0.9 + 0.35 + tb * (0.5 + 2.2 * a) - pvx[i]) * Math.min(1, dt * 1.6);
+      pvy[i] += (-1.6 * (1 - a) - 0.2 - pvy[i]) * Math.min(1, dt * 1.2);
+      px[i] += pvx[i] * ASPECT * dt; py[i] += pvy[i] * dt;
+      continue;
+    }
+    const l = play[i];
+    const m = pm[i];
+    const cx0 = camX * PAR[l], cy0 = camY * PARY[l];
+    let x = px[i], y = py[i];
+    let sx = x - cx0;
+    if (k === K_FLAKE) {
+      if (sx < -12) { x += cols + 24; sx += cols + 24; } else if (sx > cols + 12) { x -= cols + 24; sx -= cols + 24; }
+    }
+    const sy = y - cy0;
+    const nx = x * 0.045, ny = y * 0.09;
+    const tx = (noise2(nx + t * 0.45, ny - t * 0.15) - 0.5) * 2;
+    const ty = (noise2(nx - t * 0.3 + 40, ny + t * 0.25) - 0.5) * 2;
+    let ax = windNow * WINDF[l] + tx * env.turb * 2.4 + Math.sin(t * (1.1 + m) + pseed[i]) * 0.55;
+    let ay = TERM[l] * (0.55 + 0.5 * m) + ty * env.turb * 1.5;
+    if (k === K_CHUNK) { ax = pvx[i] * 0.98; ay = 9; }
+    if (mActive) {
+      const dxr = (sx - mouse.x) / ASPECT, dyr = sy - mouse.y;
+      const d2 = dxr * dxr + dyr * dyr;
+      if (d2 < MR2) {
+        const d = Math.sqrt(d2) + 1e-3, f = 1 - d / MR;
+        ax += (dxr / d) * f * 9 + mvx * f * 0.9;
+        ay += (dyr / d) * f * 9 + mvy * f * 0.9;
+      }
+    }
+    const kk = 1 - Math.exp(-DRAG[l] / m * dt);
+    let vx = pvx[i] + (ax - pvx[i]) * kk;
+    let vy = pvy[i] + (ay - pvy[i]) * kk;
+    pvx[i] = vx; pvy[i] = vy;
+    const ox = x, oy = y;
+    x += vx * ASPECT * dt;
+    y += vy * dt;
+
+    if (l === 1) {
+      const cxi = Math.floor(x), cyi = Math.floor(y);
+      if (cyi >= 1 && cyi < WH && cxi >= 1 && cxi < WW - 1) {
+        const ni = cyi * WW + cxi;
+        if (wSolid[ni] !== 0 || wSnow[ni] >= 1) {
+          const oxi = Math.floor(ox), oyi = Math.floor(oy);
+          if (oyi >= 1 && oyi < WH - 1 && oxi >= 1 && oxi < WW - 1) {
+            const oi = oyi * WW + oxi;
+            if (oi !== ni && wSolid[oi] === 0) depositAt(oi, pa[i] * env.accum);
+          }
+          if (k === K_CHUNK || layerCount[1] >= target[1]) { killP(i); continue; }
+          placeFlake(i, 1, false); continue;
+        }
+      }
+      // panels catch snow on their top edge
+      if (k === K_FLAKE && vy > 0) {
+        const scx = Math.floor(x - camX), osy = oy - camY, nsy = y - camY;
+        let hit = false;
+        for (let q = 0; q < panels.length; q++) {
+          const p = panels[q];
+          if (!p.vis || !p.frame || !p.snow) continue;
+          const kk2 = scx - (p.c0 - 1);
+          if (kk2 < 0 || kk2 >= p.snow.length) continue;
+          const surf = p.r0 - 1 - p.snow[kk2];
+          if (osy < surf && nsy >= surf) {
+            if (p.snow[kk2] < 2.2) p.snow[kk2] += pa[i] * 1.6;
+            hit = true;
+            break;
+          }
+        }
+        if (hit) {
+          if (layerCount[1] >= target[1]) killP(i); else placeFlake(i, 1, false);
+          continue;
+        }
+      }
+    }
+    if (y - cy0 > rows + 3 || (k === K_CHUNK && (x - cx0 < -30 || x - cx0 > cols + 30))) {
+      if (k === K_CHUNK || layerCount[l] >= target[l]) { killP(i); continue; }
+      placeFlake(i, l, false);
+      continue;
+    }
+    px[i] = x; py[i] = y;
+    if (k === K_FLAKE) {
+      layerCount[l]++;
+      if (l === 1) { fallSum += vy; fallN++; }
+    }
+  }
+  // keep density near target
+  for (let l = 0; l < 3; l++) {
+    const deficit = target[l] - layerCount[l];
+    if (deficit <= 0) continue;
+    const anywhere = deficit > target[l] * 0.35;
+    const n = Math.min(deficit, anywhere ? Math.ceil(deficit * 0.12) + 4 : Math.ceil(target[l] * dt * 0.9) + 1);
+    for (let j = 0; j < n; j++) spawnFlake(l, anywhere);
+  }
+  // chimney smoke
+  for (const c of chimneys) {
+    if (c.x < camX - 30 || c.x > camX + cols + 30) continue;
+    c.acc += dt * 3.2 * quality;
+    while (c.acc > 1) { c.acc -= 1; spawnSmoke(c.x, c.y); }
+  }
+  stats.fallSum = fallSum; stats.fallN = fallN;
+}
+
+function blast(sc, sr) {
+  const R = 12;
+  for (let i = 0; i < pn; i++) {
+    if (pkind[i] === K_SMOKE) continue;
+    const l = play[i];
+    const sx = px[i] - camX * PAR[l], sy = py[i] - camY * PARY[l];
+    const dxr = (sx - sc) / ASPECT, dyr = sy - sr;
+    const d = Math.sqrt(dxr * dxr + dyr * dyr) + 0.01;
+    if (d > R) continue;
+    const f = (1 - d / R) * 16 / pm[i];
+    pvx[i] += dxr / d * f; pvy[i] += dyr / d * f - 2;
+  }
+  const wx0 = Math.round(camX + sc), wy0 = Math.round(camY + sr);
+  for (let dy = -3; dy <= 3; dy++) for (let dx = -7; dx <= 7; dx++) {
+    const nd = (dx / 7) * (dx / 7) + (dy / 3) * (dy / 3);
+    if (nd > 1) continue;
+    const x = wx0 + dx, y = wy0 + dy;
+    if (!inW(x, y)) continue;
+    const i = y * WW + x;
+    const s = wSnow[i];
+    if (s > 0.05) {
+      const ang = Math.atan2(dy - 1.2, dx / ASPECT);
+      const sp = 5 + Math.random() * 6;
+      eject(x, y, s * 0.9, Math.cos(ang) * sp, Math.sin(ang) * sp - 3);
+      wSnow[i] = 0;
+    }
+  }
+  for (const p of panels) {
+    if (!p.vis || !p.snow) continue;
+    if (sr < p.r0 - 5 || sr > p.r0 + 2) continue;
+    for (let k = 0; k < p.snow.length; k++) {
+      const c = p.c0 - 1 + k;
+      if (Math.abs(c - sc) < 9 && p.snow[k] > 0) {
+        const s = p.snow[k];
+        p.snow[k] = 0;
+        eject(Math.floor(camX + c), Math.floor(camY + p.r0 - 2), Math.min(1, s), (c - sc) * 0.6, -4 - Math.random() * 3);
+      }
+    }
+  }
+  rings.push({ c: sc, r: sr, t0: simTime });
+  stats.slides++;
+}
+
+/* =========================================================
+   lights
+   ========================================================= */
+const lights = [];
+let lr = 0, lg = 0, lb = 0;
+function buildLights(t) {
+  lights.length = 0;
+  for (let k = 0; k < windows.length; k++) {
+    const w = windows[k];
+    let on = sstep(w.th - 0.05, w.th + 0.05, env.win);
+    if (w.tv && on > 0) on *= 0.55 + 0.45 * noise1(t * 7 + w.ph);
+    winOn[k] = on;
+  }
+  let lit = 0, litT = 0, lampsOn = 0;
+  for (let k = 0; k < lamps.length; k++) {
+    const L = lamps[k];
+    let on = sstep(L.th - 0.04, L.th + 0.04, env.lamps);
+    if (on > 0.05 && on < 0.95) on *= noise1(t * 22 + k * 7) > 0.45 ? 1 : 0.15;
+    lampOn[k] = on;
+    const sx = L.x - camXi, sy = L.y - camYi;
+    if (on > 0.5) lampsOn++;
+    if (on > 0.01 && sx > -30 && sx < cols + 30 && sy > -20 && sy < rows + 20)
+      lights.push({ x: sx, y: sy, r2: 13 * 13, r: 1.0, g: 0.76, b: 0.46, I: on * 1.15, cone: true });
+  }
+  for (let k = 0; k < windows.length; k++) {
+    const w = windows[k];
+    const sx = w.x + w.w / 2 - camXi, sy = w.y + w.h / 2 - camYi;
+    if (sx < -10 || sx > cols + 10) continue;
+    litT++;
+    if (winOn[k] > 0.5) lit++;
+    if (winOn[k] > 0.02 && lights.length < 28) lights.push({ x: sx, y: sy + 0.5, r2: 5.5 * 5.5, r: w.tv ? 0.55 : 1.0, g: w.tv ? 0.68 : 0.7, b: w.tv ? 1.0 : 0.38, I: winOn[k] * 0.42, cone: false });
+  }
+  stats.lit = lit; stats.litTotal = litT; stats.lampsOn = lampsOn;
+}
+function lightAt(c, r) {
+  lr = lg = lb = 0;
+  for (let k = 0; k < lights.length; k++) {
+    const L = lights[k];
+    const dx = (c - L.x) / ASPECT, dy = r - L.y;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= L.r2) continue;
+    let f = 1 - d2 / L.r2; f *= f;
+    if (L.cone) { const cone = dy > 0 ? clamp(1 - Math.abs(dx) / (dy * 0.62 + 0.8), 0, 1) : 0.22; f *= 0.25 + 0.75 * cone; }
+    f *= L.I;
+    lr += L.r * f; lg += L.g * f; lb += L.b * f;
+  }
+}
+
+/* =========================================================
+   compositing helpers
+   ========================================================= */
+function put(i, gl_, r, g_, b, a) { gGl[i] = gl_; gR[i] = r; gG[i] = g_; gB[i] = b; gA[i] = a; }
+function back(i, r, g_, b, a) { bR[i] = r; bG[i] = g_; bB[i] = b; bA[i] = a; }
+function emit(i, r, g_, b) { Lr[i] += r; Lg[i] += g_; Lb[i] += b; }
+function horizon(par) {
+  const base = rows * 0.86;
+  return base + (GYB - camY - base) * par;
+}
+
+/* sky */
+function drawSky(t) {
+  const st = env.stars, mo = env.moon, au = env.aurora, dw = env.dawn;
+  const hz = horizon(0.12);
+  const heroX = Math.max(cols / 2, 60);
+  if (st > 0.02) {
+    const ox = Math.floor(camX * 0.03), oy = Math.floor(camY * 0.05);
+    for (let r = 0; r < rows; r++) {
+      const fade = 1 - sstep(hz * 0.4, hz * 0.95, r);
+      if (fade <= 0) break;
+      for (let c = 0; c < cols; c++) {
+        const h = hash2(c + ox, r + oy);
+        if (h > 0.013) continue;
+        const tw = 0.55 + 0.45 * Math.sin(t * (1.2 + h * 260) + h * 1300);
+        const b = st * fade * tw * (h < 0.003 ? 1 : 0.65);
+        if (b < 0.06) continue;
+        put(r * cols + c, h < 0.0022 ? G_STAR : h < 0.006 ? G_PLUS : G_DOT, 0.8, 0.84, 0.92, b);
+      }
+    }
+  }
+  // sun at dawn (behind the mountains)
+  if (dw > 0.02) {
+    const sxc = cols * (cols < 120 ? 0.72 : 0.83) - (camX - (1150 - cols / 2)) * 0.03;
+    const syc = rows * 0.5 - dw * rows * 0.2;
+    const R = Math.max(3, rows * 0.06), Rc = R * ASPECT;
+    for (let r = Math.floor(syc - R * 3); r <= Math.ceil(syc + R * 3); r++) {
+      if (r < 0 || r >= rows) continue;
+      for (let c = Math.floor(sxc - Rc * 3); c <= Math.ceil(sxc + Rc * 3); c++) {
+        if (c < 0 || c >= cols) continue;
+        const dx = (c + 0.5 - sxc) / Rc, dy = (r + 0.5 - syc) / R, d = Math.sqrt(dx * dx + dy * dy);
+        const i = r * cols + c;
+        if (d < 1) {
+          const b = 0.75 + 0.25 * (1 - d);
+          put(i, RAMP[clamp(Math.round(5 + (1 - d) * 4), 1, 9)], 1.0 * b, 0.88 * b, 0.68 * b, dw);
+          emit(i, 0.32 * dw, 0.24 * dw, 0.14 * dw);
+        } else if (d < 3) {
+          const ang = Math.atan2(dy, dx);
+          const ray = Math.pow(Math.max(0, Math.sin(ang * 9 + t * 0.15)), 8) * (1 - (d - 1) / 2);
+          if (ray > 0.25 && gGl[i] === 0) put(i, (Math.abs(dx) > Math.abs(dy) * 2) ? G_DASH : (dx * dy > 0 ? G_BS : G_SL), 1, 0.86, 0.68, ray * 0.35 * dw);
+          const f = Math.max(0, 1 - (d - 1) / 2);
+          emit(i, 0.09 * f * dw, 0.06 * f * dw, 0.03 * f * dw);
+        }
+      }
+    }
+  }
+  // moon
+  if (mo > 0.02) {
+    const mxc = cols * 0.74 - (camX - (heroX - cols / 2)) * 0.012;
+    const R = Math.max(2.6, rows * (cols < 120 ? 0.04 : 0.052)), Rc = R * ASPECT;
+    const myc = R + 1.6 + (heroCamY - camY) * 0.15;
+    for (let r = Math.floor(myc - R - 1); r <= Math.ceil(myc + R + 1); r++) {
+      if (r < 0 || r >= rows) continue;
+      for (let c = Math.floor(mxc - Rc - 2); c <= Math.ceil(mxc + Rc + 2); c++) {
+        if (c < 0 || c >= cols) continue;
+        const dx = (c + 0.5 - mxc) / Rc, dy = (r + 0.5 - myc) / R, d2 = dx * dx + dy * dy;
+        const i = r * cols + c;
+        if (d2 > 1) { if (d2 < 2.4) { const f = (2.4 - d2) / 1.4; emit(i, 0.05 * f * mo, 0.055 * f * mo, 0.065 * f * mo); } continue; }
+        const nz = Math.sqrt(1 - d2);
+        const lam = clamp(-0.55 * dx - 0.3 * dy + 0.78 * nz, 0, 1);
+        const cr = noise2(dx * 3.1 + 7, dy * 3.1 + 3);
+        const b = clamp((0.2 + 0.8 * lam) * (0.86 + 0.24 * (cr - 0.5)), 0, 1);
+        put(i, RAMP[clamp(Math.round(2 + b * 7.4), 1, 9)], 0.86 * b + 0.12, 0.87 * b + 0.12, 0.84 * b + 0.13, mo);
+        if (d2 < 0.75) back(i, 0.28 + 0.16 * b, 0.29 + 0.16 * b, 0.31 + 0.15 * b, 0.3 * mo);
+        emit(i, 0.07 * mo, 0.075 * mo, 0.08 * mo);
+      }
+    }
+  }
+  // aurora
+  if (au > 0.02) {
+    const ox = camX * 0.05;
+    for (let c = 0; c < cols; c++) {
+      const x = c + ox;
+      for (let k = 0; k < 2; k++) {
+        const base = rows * (0.3 + 0.12 * k) + Math.sin(x * 0.03 + t * 0.22 + k * 2.1) * rows * 0.07 + (noise1(x * 0.018 + t * 0.09 + k * 9) - 0.5) * rows * 0.16 + (heroCamY - camY) * 0.15;
+        const rays = 0.25 + 0.75 * Math.pow(noise1(x * 0.32 + t * 0.55 + k * 3.1), 2);
+        const amp = au * (k === 0 ? 1 : 0.65) * (0.4 + 0.6 * noise1(x * 0.01 - t * 0.05 + k));
+        const top = Math.max(0, Math.floor(base - 24)), bot = Math.min(rows - 1, Math.ceil(base + 3));
+        for (let r = top; r <= bot; r++) {
+          const dy = r - base;
+          const inten = (dy < 0 ? Math.exp(dy / (8 + 8 * rays)) : Math.exp(-dy * dy * 0.6)) * rays * amp;
+          if (inten < 0.07) continue;
+          const i = r * cols + c;
+          const u = clamp(-dy / 22, 0, 1);
+          const cr = lerp(0.42, 0.62, u * u), cg = lerp(1.0, 0.5, u), cb = lerp(0.68, 1.0, u);
+          const gi = AUR[clamp(Math.round(inten * 6.5), 1, 6)];
+          if (gGl[i] === 0 || gA[i] < inten) put(i, gi, cr, cg, cb, clamp(inten * 1.15, 0, 1));
+          emit(i, cr * inten * 0.11, cg * inten * 0.11, cb * inten * 0.11);
+        }
+      }
+    }
+  }
+  // clouds
+  const cl = env.clouds;
+  if (cl > 0.03) {
+    const drift = t * (0.6 + windNow * 0.35);
+    const thr = 1 - cl * 0.7;
+    const lim = Math.min(rows, Math.ceil(hz + 2));
+    const sm = env.skyMid;
+    for (let r = 0; r < lim; r++) {
+      const fy = r * 0.085 + camY * 0.02;
+      for (let c = 0; c < cols; c++) {
+        const v = fbm2((c + camX * 0.08 + drift) * 0.028, fy);
+        const e = (v - thr) / 0.3;
+        if (e <= 0) continue;
+        const ii = clamp(e, 0, 1);
+        const i = r * cols + c;
+        back(i, sm[0] + 0.05 + ii * 0.05, sm[1] + 0.052 + ii * 0.05, sm[2] + 0.056 + ii * 0.05, ii * 0.32);
+        if (ii < 0.3) continue;
+        const hh = hash2(c + Math.floor(camX * 0.08 + drift), r);
+        if (hh > 0.08 + ii * 0.22) continue;
+        const gi = ii > 0.75 ? G_TIL : ii > 0.5 ? G_DASH : G_DOT;
+        if (gGl[i] === 0 || ii > 0.6) put(i, gi, sm[0] + 0.12 + ii * 0.08, sm[1] + 0.125 + ii * 0.08, sm[2] + 0.13 + ii * 0.08, 0.25 + ii * 0.35);
+      }
+    }
+  }
+}
+
+function mtnH(x, seed, f0) {
+  let h = 0, amp = 1, f = f0, sum = 0;
+  for (let o = 0; o < 4; o++) { const n = noise1(x * f + seed * 13.7 + o * 31.1); h += (1 - Math.abs(n * 2 - 1)) * amp; sum += amp; amp *= 0.48; f *= 2.13; }
+  return Math.pow(h / sum, 1.6);
+}
+function drawRange(par, seed, scale, body, edge, snowC, haze, f0) {
+  const off = camX * par;
+  const base = horizon(par) - rows * 0.06;
+  const sb = env.skyBot;
+  const snowLine = scale * 0.6;
+  for (let c = 0; c < cols; c++) {
+    const x = c + off;
+    const h = mtnH(x, seed, f0) * scale, hl = mtnH(x - 1, seed, f0) * scale, hr = mtnH(x + 1, seed, f0) * scale;
+    const top = Math.round(base - h);
+    const slope = hr - hl;
+    for (let r = Math.max(0, top); r < rows; r++) {
+      const depth = r - top;
+      const i = r * cols + c;
+      const alt = h - depth;
+      const lit = clamp(-slope * 0.7, -1, 1);
+      const hh = hash2(Math.floor(x * 3), r * 7 + seed);
+      let gi, cr, cg, cb;
+      if (depth === 0) {
+        gi = slope > 0.5 ? G_SL : slope < -0.5 ? G_BS : (hl < h && hr < h ? G_CARET : (hl > h && hr > h ? G_UND : G_DASH));
+        [cr, cg, cb] = alt > snowLine ? snowC : edge;
+      } else {
+        const b = 0.5 + 0.38 * lit - depth * 0.012 + (hh - 0.5) * 0.34;
+        gi = b > 0.74 ? G_COLON : b > 0.5 ? G_DOT : b > 0.32 ? G_APOS : (hh < 0.3 ? G_COMMA : 0);
+        if (alt > snowLine - hh * 2 && depth < 6) { [cr, cg, cb] = snowC; gi = b > 0.55 ? G_COLON : b > 0.3 ? G_DOT : G_APOS; }
+        else [cr, cg, cb] = body;
+        cr *= 0.85 + lit * 0.2; cg *= 0.85 + lit * 0.2; cb *= 0.85 + lit * 0.2;
+      }
+      const hz_ = haze;
+      cr = lerp(cr, sb[0], hz_); cg = lerp(cg, sb[1], hz_); cb = lerp(cb, sb[2], hz_);
+      put(i, gi, cr, cg, cb, 1);
+      const capT = alt > snowLine && depth < 6 ? 0.18 : 0;
+      back(i, lerp(sb[0], body[0] * 0.6 + capT, 0.55), lerp(sb[1], body[1] * 0.6 + capT, 0.55), lerp(sb[2], body[2] * 0.6 + capT, 0.55), 0.5);
+    }
+  }
+}
+
+function drawForest(t) {
+  const P = 0.33;
+  const off = Math.floor(camX * P);
+  const base = Math.round(horizon(P));
+  const sb = env.skyBot;
+  const fogK = 0.35 + env.fog * 0.2;
+  // distant snow plain
+  for (let r = Math.max(0, base + 1); r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      const hh = hash2(c + off, r * 3);
+      const gi = hh < 0.16 ? G_DOT : hh < 0.2 ? G_UND : 0;
+      const k = clamp((r - base) / 8, 0, 1);
+      put(i, gi, lerp(0.5, 0.66, k), lerp(0.53, 0.69, k), lerp(0.59, 0.74, k), 0.6);
+      back(i, lerp(sb[0], 0.44, 0.3 + k * 0.25), lerp(sb[1], 0.47, 0.3 + k * 0.25), lerp(sb[2], 0.52, 0.3 + k * 0.25), 0.4);
+    }
+  }
+  for (let x = off - 8; x < off + cols + 8; x++) {
+    const dens = 0.45 + 0.4 * noise1(x * 0.03 + 5);
+    if (hash2(x, 991) > dens || (x % 2) !== 0) continue;
+    const th = 2 + Math.floor(hash2(x, 17) * 4 + noise1(x * 0.05) * 3);
+    const c0 = x - off;
+    for (let k = 0; k <= th; k++) {
+      const r = base - th + k;
+      if (r < 0 || r >= rows) continue;
+      const hw = Math.floor(k * 0.6);
+      for (let c = c0 - hw; c <= c0 + hw; c++) {
+        if (c < 0 || c >= cols) continue;
+        const i = r * cols + c;
+        const edge = c === c0 - hw || c === c0 + hw;
+        const gi = k === 0 ? G_CARET : edge ? (c < c0 ? G_SL : G_BS) : G_CARET;
+        const snowy = k > 0 && edge && c < c0 && hash2(c + off, r) < 0.55;
+        const cr = snowy ? 0.62 : 0.2, cg = snowy ? 0.65 : 0.25, cb = snowy ? 0.7 : 0.25;
+        put(i, gi, lerp(cr, sb[0], fogK), lerp(cg, sb[1], fogK), lerp(cb, sb[2], fogK), 1);
+        back(i, lerp(0.12, sb[0], fogK), lerp(0.14, sb[1], fogK), lerp(0.15, sb[2], fogK), 0.55);
+      }
+    }
+  }
+}
+
+function drawFog(t) {
+  const f = env.fog;
+  if (f < 0.05) return;
+  const base = Math.round(horizon(0.25));
+  const sb = env.skyBot;
+  for (let r = base - 3; r <= base + 2; r++) {
+    if (r < 0 || r >= rows) continue;
+    for (let c = 0; c < cols; c++) {
+      const v = noise2((c + camX * 0.25 + t * (1 + windNow * 0.5)) * 0.06, r * 0.5);
+      const e = (v - 0.5) * 2.2 * f;
+      if (e <= 0.05) continue;
+      const i = r * cols + c;
+      if (bA[i] < 0.3) back(i, sb[0] + 0.06, sb[1] + 0.065, sb[2] + 0.07, clamp(e * 0.35, 0, 0.25));
+      if (e > 0.45 && hash2(c + Math.floor(camX * 0.25 + t * 3), r) < 0.25) put(i, G_TIL, sb[0] + 0.14, sb[1] + 0.145, sb[2] + 0.15, clamp(e * 0.6, 0, 0.45));
+    }
+  }
+}
+
+/* town (the simulated world) */
+const SNOW_TOP = [0.9, 0.92, 0.955], SNOW_DEEP = [0.48, 0.52, 0.6];
+function drawTown(t) {
+  const amb = env.amb;
+  const clockStr = clockText(t);
+  for (let r = 0; r < rows; r++) {
+    const wy = camYi + r;
+    if (wy < 1 || wy >= WH) continue;
+    const rowBase = wy * WW;
+    for (let c = 0; c < cols; c++) {
+      const wx = camXi + c;
+      if (wx < 1 || wx >= WW - 1) continue;
+      const i = rowBase + wx;
+      const m = wSolid[i];
+      const s = wSnow[i];
+      if (m === 0 && s < 0.05) continue;
+      const gi = r * cols + c;
+      let gl_, cr, cg, cb, a = 1, emis = false, refl = 0.6, mass = -1;
+      if (m === M_GROUND) {
+        // depth below the visible snow surface: count the loose cover lying on top
+        let up = i - WW, cover = 0;
+        while (cover < 6 && wSolid[up] === 0 && wSnow[up] >= 1) { cover++; up -= WW; }
+        mass = wy - groundY[wx] + cover + (wSolid[up] === 0 && wSnow[up] > 0.5 ? 1 : 0);
+        refl = 1;
+      } else if (m === M_ICE) {
+        const h = hash2(wx, 5);
+        const crack = Math.abs(noise1(wx * 0.21) - 0.5) < 0.03;
+        gl_ = crack ? (h < 0.5 ? G_SL : G_BS) : (h < 0.7 ? G_DASH : G_UND);
+        cr = 0.62; cg = 0.7; cb = 0.78;
+        back(gi, 0.16, 0.2, 0.25, 0.4);
+      } else if (m === M_TITLE) {
+        gl_ = wGlyph[i];
+        const v = clamp((wy - titleTop) / Math.max(1, titleH - 1), 0, 1);
+        const band = Math.sin(wx * 0.07 - wy * 0.32 - t * 1.5);
+        const shine = Math.pow(clamp(band, 0, 1), 6);
+        const br = 0.92 + shine * 0.25;
+        cr = lerp(0.95, 0.56, v) * br; cg = lerp(0.96, 0.6, v) * br; cb = lerp(0.985, 0.68, v) * br;
+        if (shine > 0.6 && gl_ === G_HASH) gl_ = G_AT;
+        refl = 0.4;
+      } else if (m !== 0) {
+        gl_ = wGlyph[i];
+        const col = wCol[i];
+        cr = (col >> 16) / 255; cg = ((col >> 8) & 255) / 255; cb = (col & 255) / 255;
+        const tag = wTag[i];
+        if (tag) {
+          if (tag < TAG_LAMP) {
+            const on = winOn[tag - 1];
+            if (on > 0.01) {
+              const w = windows[tag - 1];
+              const wr = w.tv ? 0.62 : 1.0, wg = w.tv ? 0.74 : 0.72, wb = w.tv ? 1.0 : 0.38;
+              const fl = 0.88 + 0.12 * noise1(t * 3 + w.ph + wx * 0.3);
+              cr = lerp(cr, wr * fl, on); cg = lerp(cg, wg * fl, on); cb = lerp(cb, wb * fl, on);
+              emit(gi, wr * on * 0.5, wg * on * 0.5, wb * on * 0.5);
+              back(gi, wr * 0.35, wg * 0.25, wb * 0.15, on * 0.35);
+              emis = true;
+            }
+          } else if (tag < TAG_SIGN) {
+            const on = lampOn[tag - TAG_LAMP];
+            gl_ = on > 0.5 ? G_O : G_o;
+            cr = lerp(0.45, 1.0, on); cg = lerp(0.48, 0.92, on); cb = lerp(0.52, 0.75, on);
+            emit(gi, 1.6 * on, 1.2 * on, 0.7 * on);
+            emis = on > 0.1;
+          } else if (tag < TAG_CLOCK) {
+            const k = tag - TAG_SIGN;
+            let on = sstep(0.1, 0.5, env.lamps + env.win * 0.3);
+            if (k === 1 && noise1(t * 4) < 0.28) on *= 0.15;
+            cr = lerp(0.3, 1.0, on); cg = lerp(0.26, 0.56, on); cb = lerp(0.24, 0.36, on);
+            emit(gi, 0.9 * on, 0.42 * on, 0.22 * on);
+            emis = on > 0.1;
+          } else {
+            const k = tag - TAG_CLOCK;
+            gl_ = g(clockStr[k]);
+            const on = 0.5 + 0.5 * sstep(0.1, 0.6, env.win);
+            cr = 0.72 * on; cg = 0.88 * on; cb = 1.0 * on;
+            emit(gi, 0.35 * on, 0.45 * on, 0.55 * on);
+            emis = true;
+          }
+        }
+        // frost: surfaces with snow on them lighten a little
+        if (!emis && wSnow[i - WW] >= 0.45) { cr = lerp(cr, 0.85, 0.28); cg = lerp(cg, 0.88, 0.28); cb = lerp(cb, 0.93, 0.28); }
+        if (m === M_SNOWMAN && gl_ !== G_o && gl_ !== G_COLON) refl = 1;
+      } else {
+        // loose snow resting in an empty cell
+        if (s < 1) {
+          gl_ = s < 0.34 ? G_DOT : s < 0.67 ? G_UND : G_LOW;
+          cr = SNOW_TOP[0]; cg = SNOW_TOP[1]; cb = SNOW_TOP[2];
+        } else {
+          let depth = 0, up = i - WW;
+          while (depth < 6 && wSolid[up] === 0 && wSnow[up] >= 1) { depth++; up -= WW; }
+          mass = depth + (wSolid[up] === 0 && wSnow[up] > 0.5 ? 1 : 0);
+        }
+        refl = 1;
+      }
+      if (mass >= 0) {
+        // snow body: pale cell, white rim on top, sparse texture inside
+        const h = hash2(wx, wy);
+        const k = clamp(mass / 8, 0, 1);
+        if (mass === 0) {
+          gl_ = G_UP; cr = SNOW_TOP[0] + 0.04; cg = SNOW_TOP[1] + 0.04; cb = SNOW_TOP[2] + 0.03;
+          if (hash2(wx, Math.floor(t * 1.4 + h * 37)) < 0.01) { gl_ = G_STAR; cr = cg = cb = 1.05; }
+        } else {
+          gl_ = mass < 3 ? (h < 0.45 ? G_COLON : h < 0.75 ? G_DOT : G_APOS) : (h < 0.3 ? G_DOT : h < 0.4 ? G_APOS : 0);
+          cr = lerp(0.82, 0.5, k); cg = lerp(0.85, 0.54, k); cb = lerp(0.9, 0.62, k);
+        }
+        let br = lerp(0.6, 0.27, k), bgc = lerp(0.63, 0.29, k), bb = lerp(0.69, 0.34, k);
+        lightAt(c, r);
+        br = br * amb[0] + lr * 0.55; bgc = bgc * amb[1] + lg * 0.55; bb = bb * amb[2] + lb * 0.55;
+        back(gi, br, bgc, bb, lerp(0.62, 0.42, k));
+        cr = cr * amb[0] + lr * (0.25 + 0.75 * cr);
+        cg = cg * amb[1] + lg * (0.25 + 0.75 * cg);
+        cb = cb * amb[2] + lb * (0.25 + 0.75 * cb);
+      } else if (!emis) {
+        lightAt(c, r);
+        cr = cr * amb[0] + lr * (0.25 + refl * 0.75 * cr);
+        cg = cg * amb[1] + lg * (0.25 + refl * 0.75 * cg);
+        cb = cb * amb[2] + lb * (0.25 + refl * 0.75 * cb);
+      }
+      put(gi, gl_, cr, cg, cb, a);
+    }
+  }
+}
+
+function clockText(t) {
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0'), mm = String(d.getMinutes()).padStart(2, '0');
+  return hh + (d.getSeconds() % 2 ? ' ' : ':') + mm;
+}
+
+function drawLampCones() {
+  for (let k = 0; k < lamps.length; k++) {
+    const on = lampOn[k];
+    if (on < 0.02) continue;
+    const L = lamps[k];
+    const lx = L.x - camXi, ly = L.y - camYi;
+    if (lx < -30 || lx > cols + 30) continue;
+    const ground = groundY[L.x] - camYi;
+    for (let r = Math.max(0, ly + 1); r < Math.min(rows, ground + 1); r++) {
+      const dy = r - ly;
+      const hw = (dy * 0.62 + 0.8) * ASPECT;
+      for (let c = Math.max(0, Math.floor(lx - hw)); c <= Math.min(cols - 1, Math.ceil(lx + hw)); c++) {
+        const u = Math.abs(c - lx) / hw;
+        if (u >= 1) continue;
+        const f = on * (1 - u * u) * (0.055 + 0.05 * (1 - dy / 12));
+        emit(r * cols + c, f, f * 0.74, f * 0.42);
+      }
+    }
+  }
+}
+
+function plotWorld(wx, wy, gl_, r, g_, b, a) {
+  const c = Math.round(wx) - camXi, rr = Math.round(wy) - camYi;
+  if (c < 0 || c >= cols || rr < 0 || rr >= rows) return;
+  put(rr * cols + c, gl_, r, g_, b, a);
+}
+
+function drawWindmill(t, dt) {
+  if (!windmill) return;
+  windmill.ang += dt * (0.25 + Math.abs(windNow) * 0.33);
+  const hx = windmill.x, hy = windmill.y;
+  if (hx - camXi < -40 || hx - camXi > cols + 40) return;
+  const amb = env.amb;
+  const C = [0.78 * amb[0], 0.72 * amb[1], 0.64 * amb[2]];
+  const S = [0.6 * amb[0], 0.56 * amb[1], 0.5 * amb[2]];
+  for (let b = 0; b < 4; b++) {
+    const ang = windmill.ang + b * Math.PI / 2;
+    const ca = Math.cos(ang), sa = Math.sin(ang);
+    const dir = ((Math.atan2(sa, ca) * 180 / Math.PI) % 180 + 180) % 180;
+    const gl_ = dir < 22 || dir > 158 ? G_DASH : dir < 68 ? G_SL : dir < 112 ? G_PIPE : G_BS;
+    // perpendicular unit in row units (screen y grows downward)
+    const nx = sa, ny = ca;
+    for (let s = 2.5; s <= 10; s += 0.35) {
+      for (let w = 1; w <= 2.6; w += 0.8) {
+        plotWorld(hx + (ca * s + nx * w) * ASPECT, hy - sa * s + ny * w, w > 2 ? gl_ : G_HASH, S[0], S[1], S[2], 1);
+      }
+    }
+    for (let s = 0.6; s <= 10.4; s += 0.3) plotWorld(hx + ca * s * ASPECT, hy - sa * s, gl_, C[0], C[1], C[2], 1);
+  }
+  plotWorld(hx, hy, G_O, 0.85, 0.8, 0.7, 1);
+}
+
+function drawSprites(t) {
+  const amb = env.amb;
+  // skater on the lake
+  if (skater && skater.c - camXi > -60 && skater.c - camXi < cols + 60) {
+    const ph = t * 0.35;
+    const x = skater.c + Math.sin(ph) * skater.span;
+    const dir = Math.cos(ph) >= 0 ? 1 : -1;
+    const step = Math.floor(t * 2.5) & 1;
+    const fy = ICEY - 1;
+    const coat = [0.32 * amb[0], 0.34 * amb[1], 0.4 * amb[2]], skin = [0.82, 0.74, 0.66], scarf = [0.95, 0.66, 0.34];
+    plotWorld(x, fy - 2, G_o, skin[0], skin[1], skin[2], 1);
+    plotWorld(x - dir, fy - 1, dir > 0 ? G_LT : G_GT, coat[0], coat[1], coat[2], 1);
+    plotWorld(x, fy - 1, G_PIPE, scarf[0], scarf[1], scarf[2], 1);
+    plotWorld(x + dir, fy - 1, dir > 0 ? G_BS : G_SL, coat[0], coat[1], coat[2], 1);
+    plotWorld(x - 1, fy, step ? G_SL : G_UND, coat[0], coat[1], coat[2], 1);
+    plotWorld(x + 1, fy, step ? G_UND : G_BS, coat[0], coat[1], coat[2], 1);
+  }
+  // two people watching the sky on the hill
+  if (watchers && watchers.x - camXi > -20 && watchers.x - camXi < cols + 20) {
+    const gy = groundY[watchers.x];
+    for (let p = 0; p < 2; p++) {
+      const x = watchers.x + p * 4;
+      const col = p ? [0.38, 0.33, 0.3] : [0.3, 0.33, 0.38];
+      const head = Math.sin(t * 0.4 + p) > 0.85 ? G_O : G_o;
+      plotWorld(x, gy - 3, head, 0.8, 0.74, 0.68, 1);
+      plotWorld(x - 1, gy - 2, G_SL, col[0], col[1], col[2], 1);
+      plotWorld(x, gy - 2, G_PIPE, col[0], col[1], col[2], 1);
+      plotWorld(x + 1, gy - 2, G_BS, col[0], col[1], col[2], 1);
+      plotWorld(x - 1, gy - 1, G_SL, col[0], col[1], col[2], 1);
+      plotWorld(x + 1, gy - 1, G_BS, col[0], col[1], col[2], 1);
+    }
+  }
+}
+
+function drawShards(t) {
+  const d = env.dissolve;
+  if (d <= 0) return;
+  for (let k = 0; k < tN; k++) {
+    if (d <= tTh[k]) continue;
+    const u = (d - tTh[k]) / 0.38;
+    if (u > 1.6) continue;
+    const s = tSeed[k];
+    const wx = tX[k] + u * u * (12 + 30 * s) + (s - 0.5) * u * 14 + Math.sin(u * 4 + s * 20) * 1.5;
+    const wy = tY[k] - u * (4 + 7 * hash2(k, 3)) + u * u * 7;
+    const a = 1 - u / 1.6;
+    const gl_ = u < 0.35 ? tGl[k] : u < 0.8 ? G_STAR : G_DOT;
+    plotWorld(wx, wy, gl_, 0.92, 0.94, 0.97, a);
+  }
+}
+
+const RING = [];
+function drawParticles(layer, t) {
+  const amb = env.amb;
+  const sb = env.skyBot;
+  for (let i = 0; i < pn; i++) {
+    if (play[i] !== layer) continue;
+    const k = pkind[i];
+    const c = Math.floor(px[i] - camX * PAR[layer]), r = Math.floor(py[i] - camY * PARY[layer]);
+    if (c < 0 || c >= cols || r < 0 || r >= rows) continue;
+    const gi = r * cols + c;
+    if (k === K_SMOKE) {
+      const a = plife[i] / pmax[i];
+      const hs = pseed[i] % 1;
+      const gl_ = a < 0.12 ? G_o : a < 0.4 ? (hs < 0.5 ? G_TIL : G_o) : a < 0.7 ? (hs < 0.6 ? G_TIL : G_DASH) : (hs < 0.5 ? G_DOT : G_APOS);
+      const al = (1 - a) * 0.7;
+      put(gi, gl_, lerp(0.66, sb[0] + 0.1, a), lerp(0.63, sb[1] + 0.1, a), lerp(0.6, sb[2] + 0.1, a), al);
+      continue;
+    }
+    let gl_, cr, cg, cb, a;
+    const vx = pvx[i], vy = pvy[i];
+    const sp2 = vx * vx + vy * vy;
+    if (layer === 0) {
+      gl_ = G_DOT; cr = 0.7; cg = 0.73; cb = 0.8; a = 0.55;
+    } else {
+      if (k === K_CHUNK) gl_ = G_PCT;
+      else if (sp2 > (layer === 2 ? 70 : 55) && (pseed[i] % 1) < 0.7) {
+        const ang = Math.atan2(vy, vx) * 180 / Math.PI;
+        gl_ = (ang > 72 && ang < 108) ? G_PIPE : (ang >= 38 && ang <= 72) ? G_BS : (ang >= 108 && ang <= 142) ? G_SL : G_DASH;
+      } else gl_ = layer === 2 ? G_STAR : (pm[i] > 1.05 ? G_STAR : G_PLUS);
+      cr = 0.9; cg = 0.92; cb = 0.96; a = layer === 2 ? 1 : 0.9;
+      lightAt(c, r);
+      cr = cr * amb[0] + lr * 0.95; cg = cg * amb[1] + lg * 0.95; cb = cb * amb[2] + lb * 0.95;
+      if (layer === 2 && sp2 > 60) {
+        const tc = Math.floor(px[i] - vx * ASPECT * 0.035 - camX * PAR[layer]), tr = Math.floor(py[i] - vy * 0.035 - camY * PARY[layer]);
+        if (tc >= 0 && tc < cols && tr >= 0 && tr < rows && (tc !== c || tr !== r)) put(tr * cols + tc, gl_, cr, cg, cb, 0.45);
+      }
+    }
+    put(gi, gl_, cr, cg, cb, a);
+  }
+}
+
+function drawReflection(t) {
+  const ri = ICEY - camYi;
+  stats.mirror = 0;
+  if (ri < 1 || ri >= rows - 1) return;
+  const c0 = Math.max(0, LAKE0 - camXi), c1 = Math.min(cols - 1, LAKE1 - camXi);
+  if (c1 < c0) return;
+  for (let r = ri + 1; r < rows; r++) {
+    const src = 2 * ri - r;
+    if (src < 0) break;
+    stats.mirror++;
+    const k = r - ri;
+    for (let c = c0; c <= c1; c++) {
+      const wob = Math.round(Math.sin(r * 1.7 + t * 1.2 + c * 0.04) * 0.7 * Math.min(1, k / 2));
+      const sc = clamp(c + wob, 0, cols - 1);
+      const si = src * cols + sc, di = r * cols + c;
+      const fade = 0.62 - k * 0.03;
+      if (gGl[si]) put(di, FLIP[gGl[si]], gR[si] * 0.6 + 0.04, gG[si] * 0.68 + 0.06, gB[si] * 0.8 + 0.1, gA[si] * fade);
+      else gGl[di] = 0;
+      back(di, 0.1, 0.13, 0.17, 0.5);
+      bA[di] = lerp(0.5, bA[si] * 0.6 + 0.2, 0.3);
+      if (hash2(c + camXi, r + Math.floor(t * 0.7)) < 0.006) put(di, G_DASH, 0.75, 0.82, 0.9, 0.5);
+    }
+  }
+}
+
+/* panels drawn into the grid: scrim, ascii frame, snow on top */
+const panels = [...document.querySelectorAll('[data-panel]')].map(el => ({ el, frame: el.dataset.panel !== 'bare', vis: false, snow: null, c0: 0, c1: -1, r0: 0, r1: -1 }));
+const io = new IntersectionObserver(es => { for (const e of es) { const p = panels.find(q => q.el === e.target); if (p) p.vis = e.isIntersecting; } }, { rootMargin: '20% 0px' });
+panels.forEach(p => io.observe(p.el));
+function measurePanels() {
+  for (const p of panels) {
+    if (!p.vis) continue;
+    const rc = p.el.getBoundingClientRect();
+    p.c0 = Math.floor(rc.left * dpr / CW);
+    p.c1 = Math.ceil(rc.right * dpr / CW) - 1;
+    p.r0 = Math.floor(rc.top * dpr / CH);
+    p.r1 = Math.ceil(rc.bottom * dpr / CH) - 1;
+    const n = p.c1 - p.c0 + 3;
+    if (p.frame && (!p.snow || p.snow.length !== n)) p.snow = new Float32Array(Math.max(1, n));
+  }
+}
+function drawPanels() {
+  const FR = [0.4, 0.43, 0.48];
+  for (const p of panels) {
+    if (!p.vis) continue;
+    if (!p.frame) {
+      const pad = 2;
+      for (let r = p.r0 - pad; r <= p.r1 + pad; r++) {
+        if (r < 0 || r >= rows) continue;
+        for (let c = p.c0 - pad * 2; c <= p.c1 + pad * 2; c++) {
+          if (c < 0 || c >= cols) continue;
+          const i = r * cols + c;
+          const inside = r >= p.r0 && r <= p.r1 && c >= p.c0 && c <= p.c1;
+          if (inside) { gGl[i] = 0; back(i, 0.075, 0.08, 0.09, 0.5); }
+          else { gA[i] *= 0.4; if (bA[i] < 0.25) back(i, 0.075, 0.08, 0.09, 0.25); }
+        }
+      }
+      continue;
+    }
+    const fc0 = p.c0 - 1, fc1 = p.c1 + 1, fr0 = p.r0 - 1, fr1 = p.r1 + 1;
+    for (let r = fr0; r <= fr1; r++) {
+      if (r < 0 || r >= rows) continue;
+      for (let c = fc0; c <= fc1; c++) {
+        if (c < 0 || c >= cols) continue;
+        const i = r * cols + c;
+        back(i, 0.072, 0.077, 0.087, 0.86);
+        const top = r === fr0, bot = r === fr1, left = c === fc0, right = c === fc1;
+        if ((top || bot) && (left || right)) put(i, G_PLUS, FR[0], FR[1], FR[2], 1);
+        else if (top || bot) put(i, G_DASH, FR[0], FR[1], FR[2], 1);
+        else if (left || right) put(i, G_PIPE, FR[0], FR[1], FR[2], 1);
+        else gGl[i] = 0;
+      }
+    }
+    const s = p.snow;
+    if (s) {
+      for (let k = 0; k < s.length; k++) {
+        const c = fc0 + k;
+        if (c < 0 || c >= cols) continue;
+        const h = s[k];
+        if (h < 0.08) continue;
+        const full = Math.floor(h), frac = h - full;
+        for (let j = 0; j < full; j++) {
+          const r = fr0 - 1 - j;
+          if (r < 0 || r >= rows) continue;
+          const i = r * cols + c;
+          const topCell = j === full - 1 && frac < 0.5;
+          put(i, topCell ? G_UP : (hash2(c, j) < 0.5 ? G_COLON : G_DOT), 0.9 * env.amb[0], 0.92 * env.amb[1], 0.96 * env.amb[2], 1);
+          back(i, 0.58 * env.amb[0], 0.61 * env.amb[1], 0.67 * env.amb[2], 0.6);
+        }
+        const r = fr0 - 1 - full;
+        if (frac > 0.08 && r >= 0 && r < rows) put(r * cols + c, frac < 0.4 ? G_DOT : frac < 0.75 ? G_UND : G_LOW, 0.9 * env.amb[0], 0.92 * env.amb[1], 0.96 * env.amb[2], 1);
+      }
+    }
+  }
+}
+
+function drawRings(t) {
+  for (let k = rings.length - 1; k >= 0; k--) {
+    const R = rings[k];
+    const u = (t - R.t0) / 0.55;
+    if (u > 1) { rings.splice(k, 1); continue; }
+    const rad = 1 + u * 11;
+    const n = Math.ceil(rad * 7);
+    for (let j = 0; j < n; j++) {
+      const ang = j / n * Math.PI * 2;
+      const c = Math.round(R.c + Math.cos(ang) * rad * ASPECT), r = Math.round(R.r + Math.sin(ang) * rad);
+      if (c < 0 || c >= cols || r < 0 || r >= rows) continue;
+      put(r * cols + c, u < 0.4 ? G_o : G_DOT, 0.95, 0.96, 1, 1 - u);
+    }
+  }
+}
+
+let introStart = 0;
+function introDecode(t) {
+  const p = (t - introStart) / 1.3;
+  if (p >= 1) return true;
+  for (let i = 0; i < N; i++) {
+    if (gGl[i] === 0) continue;
+    const r = (i / cols) | 0, c = i - r * cols;
+    const th = hash2(c, r) * 0.75 + (c / cols) * 0.25;
+    if (p < th) {
+      if (p < th - 0.2) { gA[i] *= 0.15; }
+      gGl[i] = SCRAMBLE_SET[(hash2(c, r + Math.floor(t * 18)) * SCRAMBLE_SET.length) | 0];
+      gR[i] = 0.55; gG[i] = 0.6; gB[i] = 0.66;
+    }
+  }
+  return false;
+}
+
+/* light-map blur */
+function blur(src, tmp, rx, ry) {
+  for (let y = 0; y < rows; y++) {
+    const o = y * cols;
+    let acc = 0;
+    for (let x = -rx; x <= rx; x++) acc += src[o + clamp(x, 0, cols - 1)];
+    const inv = 1 / (2 * rx + 1);
+    for (let x = 0; x < cols; x++) {
+      tmp[o + x] = acc * inv;
+      acc += src[o + Math.min(x + rx + 1, cols - 1)] - src[o + Math.max(x - rx, 0)];
+    }
+  }
+  for (let x = 0; x < cols; x++) {
+    let acc = 0;
+    for (let y = -ry; y <= ry; y++) acc += tmp[clamp(y, 0, rows - 1) * cols + x];
+    const inv = 1 / (2 * ry + 1);
+    for (let y = 0; y < rows; y++) {
+      src[y * cols + x] = acc * inv;
+      acc += tmp[Math.min(y + ry + 1, rows - 1) * cols + x] - tmp[Math.max(y - ry, 0) * cols + x];
+    }
+  }
+}
+
+/* =========================================================
+   frame
+   ========================================================= */
+let quality = 1;
+const pinQuality = /[?&]hq\b/.test(location.search);
+let simTime = 0, last = 0, acc = 0, introDone = reduced;
+let scrollSm = 0;
+function composite(t, dt) {
+  gGl.fill(0); bA.fill(0); Lr.fill(0); Lg.fill(0); Lb.fill(0);
+  buildLights(t);
+  drawSky(t);
+  drawRange(0.07, 2, rows * 0.5, [0.36, 0.39, 0.44], [0.56, 0.6, 0.66], [0.78, 0.81, 0.86], 0.5, 0.017);
+  drawRange(0.15, 7, rows * 0.38, [0.25, 0.28, 0.32], [0.46, 0.5, 0.55], [0.86, 0.88, 0.92], 0.22, 0.024);
+  drawForest(t);
+  drawFog(t);
+  drawParticles(0, t);
+  drawTown(t);
+  drawLampCones();
+  drawWindmill(t, dt);
+  drawSprites(t);
+  drawShards(t);
+  drawParticles(1, t);
+  drawParticles(2, t);
+  drawReflection(t);
+  measurePanels();
+  drawPanels();
+  drawRings(t);
+  if (!introDone) introDone = introDecode(t);
+}
+
+function pack() {
+  for (let i = 0; i < N; i++) {
+    const j = i * 4;
+    u8Glyph[i] = gGl[i];
+    u8Fg[j] = gR[i] * 255; u8Fg[j + 1] = gG[i] * 255; u8Fg[j + 2] = gB[i] * 255; u8Fg[j + 3] = gA[i] * 255;
+    const ba = bA[i];
+    u8Bg[j] = bR[i] * 255; u8Bg[j + 1] = bG[i] * 255; u8Bg[j + 2] = bB[i] * 255; u8Bg[j + 3] = ba * 255;
+  }
+  blur(Lr, Tr, 4, 2); blur(Lg, Tg, 4, 2); blur(Lb, Tb, 4, 2);
+  blur(Lr, Tr, 3, 2); blur(Lg, Tg, 3, 2); blur(Lb, Tb, 3, 2);
+  for (let i = 0; i < N; i++) {
+    const j = i * 4;
+    u8Light[j] = Lr[i] * 255; u8Light[j + 1] = Lg[i] * 255; u8Light[j + 2] = Lb[i] * 255; u8Light[j + 3] = 255;
+  }
+}
+
+function renderGL(t) {
+  const up = (unit, tex, fmt, data) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, cols, rows, fmt, gl.UNSIGNED_BYTE, data); };
+  up(1, texGlyph, gl.RED, u8Glyph);
+  up(2, texFg, gl.RGBA, u8Fg);
+  up(3, texBg, gl.RGBA, u8Bg);
+  up(4, texLight, gl.RGBA, u8Light);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.uniform2f(U.uCell, CW, CH);
+  gl.uniform2f(U.uRes, canvas.width, canvas.height);
+  gl.uniform2f(U.uAtlasPx, atlas.width, atlas.height);
+  gl.uniform1f(U.uAC, ATLAS_COLS);
+  gl.uniform1f(U.uTime, t);
+  gl.uniform1f(U.uGlow, 0.85);
+  gl.uniform3fv(U.uTop, env.skyTop);
+  gl.uniform3fv(U.uMid, env.skyMid);
+  gl.uniform3fv(U.uBot, env.skyBot);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+function render2D() {
+  const c = ctx2d, W = cols * CW, H = rows * CH;
+  const s = v => `rgb(${(v[0] * 255) | 0},${(v[1] * 255) | 0},${(v[2] * 255) | 0})`;
+  const grd = c.createLinearGradient(0, 0, 0, H);
+  grd.addColorStop(0, s(env.skyTop)); grd.addColorStop(0.55, s(env.skyMid)); grd.addColorStop(1, s(env.skyBot));
+  c.globalCompositeOperation = 'source-over';
+  c.fillStyle = grd; c.fillRect(0, 0, W, H);
+  img2Bg.data.set(u8Bg); c2Bg.getContext('2d').putImageData(img2Bg, 0, 0);
+  c.imageSmoothingEnabled = false; c.drawImage(c2Bg, 0, 0, W, H);
+  const gc = c2Glyph.getContext('2d');
+  gc.globalCompositeOperation = 'source-over';
+  gc.clearRect(0, 0, W, H);
+  for (let i = 0; i < N; i++) {
+    const gi = u8Glyph[i];
+    if (!gi) continue;
+    const r = (i / cols) | 0, cc = i - r * cols;
+    gc.drawImage(atlas, (gi % ATLAS_COLS) * CW, ((gi / ATLAS_COLS) | 0) * CH, CW, CH, cc * CW, r * CH, CW, CH);
+  }
+  img2Fg.data.set(u8Fg); c2Fg.getContext('2d').putImageData(img2Fg, 0, 0);
+  gc.globalCompositeOperation = 'source-in';
+  gc.imageSmoothingEnabled = false;
+  gc.drawImage(c2Fg, 0, 0, W, H);
+  c.drawImage(c2Glyph, 0, 0);
+  img2Light.data.set(u8Light); c2Light.getContext('2d').putImageData(img2Light, 0, 0);
+  c.globalCompositeOperation = 'lighter';
+  c.imageSmoothingEnabled = true;
+  c.globalAlpha = 0.85;
+  c.drawImage(c2Light, 0, 0, W, H);
+  c.globalAlpha = 1;
+  c.globalCompositeOperation = 'source-over';
+}
+
+let frameAvg = 16, slowFor = 0, fastFor = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
+  last = now;
+  simTime += dt;
+  const t = simTime;
+  const target = window.scrollY;
+  scrollSm += (target - scrollSm) * (1 - Math.exp(-dt * (reduced ? 14 : 6.5)));
+  if (Math.abs(target - scrollSm) < 0.3) scrollSm = target;
+  updateEnv(scrollSm);
+  updateCamera();
+  updateTitle();
+  acc += dt;
+  let ticks = 0;
+  while (acc >= 1 / 30 && ticks < 3) { snowTick(); acc -= 1 / 30; ticks++; }
+  if (ticks === 3) acc = 0;
+  updateParticles(dt, t);
+  if (atlasDirty) buildAtlas();
+  composite(t, dt);
+  pack();
+  if (gl) renderGL(t); else render2D();
+  const ms = performance.now() - now;
+  frameAvg = lerp(frameAvg, dt * 1000, 0.05);
+  stats.frameMs = lerp(stats.frameMs, ms, 0.1);
+  // adaptive quality: thin the snow when frames get slow
+  if (frameAvg > 26) { slowFor += dt; fastFor = 0; } else if (frameAvg < 18) { fastFor += dt; slowFor = 0; }
+  if (!pinQuality && slowFor > 2 && quality > 0.45) { quality -= 0.15; slowFor = 0; }
+  if (fastFor > 6 && quality < 1) { quality = Math.min(1, quality + 0.1); fastFor = 0; }
+  updateHud(t);
+}
+
+/* =========================================================
+   HUD / live text
+   ========================================================= */
+let hudNext = 0, lastChapter = -1;
+const fmt = n => Math.round(n).toLocaleString('ru-RU');
+const setLive = (k, v) => { const a = liveEls[k]; if (a) for (const el of a) if (el.textContent !== v) el.textContent = v; };
+const CHAP_NAMES = sections.map(s => s.dataset.name);
+function windGauge(w) {
+  const n = clamp(Math.round(Math.abs(w) * 1.4), 0, 12);
+  return (w >= 0 ? '>'.repeat(n) : '<'.repeat(n)).padEnd(12, '·');
+}
+function updateHud(t) {
+  if (env.chapter !== lastChapter) {
+    lastChapter = env.chapter;
+    const v = String(env.chapter).padStart(2, '0') + ' · ' + CHAP_NAMES[env.chapter];
+    scrambleTo(chapEl, v);
+    railLinks.forEach((a, k) => a.setAttribute('aria-current', k === env.chapter ? 'true' : 'false'));
+  }
+  if (t < hudNext) return;
+  hudNext = t + 0.25;
+  const flakes = layerCount[0] + layerCount[1] + layerCount[2];
+  setLive('cells', fmt(cols * rows));
+  setLive('flakes', fmt(flakes) + ' частиц');
+  setLive('flakes2', fmt(flakes) + ' частиц');
+  setLive('fall', stats.fallN ? (stats.fallSum / stats.fallN).toFixed(1).replace('.', ',') + ' клет/с' : '—');
+  setLive('layers', `${fmt(layerCount[0])} · ${fmt(layerCount[1])} · ${fmt(layerCount[2])}`);
+  setLive('settled', fmt(stats.settled) + ' клеток');
+  setLive('slides', fmt(stats.slides));
+  const wtxt = `${stats.lit} из ${stats.litTotal}`;
+  setLive('windows', wtxt); setLive('windows2', wtxt);
+  setLive('wind', windGauge(windNow) + '  ' + Math.abs(windNow).toFixed(1).replace('.', ',') + ' клет/с');
+  setLive('gust', '×' + gustNow.toFixed(2).replace('.', ','));
+  setLive('lifted', fmt(stats.lifted) + ' клеток');
+  setLive('lamps', `${stats.lampsOn} из ${lamps.length}`);
+  setLive('clock', clockText(t).replace(' ', ':'));
+  setLive('mirror', String(stats.mirror));
+  setLive('aurora', Math.round(env.aurora * 100) + ' %');
+  setLive('perf', `${fmt(cols * rows)} символов · ${fmt(pn)} частиц · кадр ${stats.frameMs.toFixed(1).replace('.', ',')} мс`);
+}
+
+const SCR = '#%@*+=-:./\\|';
+function scrambleTo(el, final) {
+  if (reduced) { el.textContent = final; return; }
+  const start = performance.now(), dur = 520;
+  const step = now => {
+    const p = (now - start) / dur;
+    let out = '';
+    for (let k = 0; k < final.length; k++) {
+      const c = final[k];
+      if (c === ' ') { out += ' '; continue; }
+      const th = k / final.length * 0.6;
+      out += p > th + 0.35 ? c : (p > th ? SCR[(Math.random() * SCR.length) | 0] : '·');
+    }
+    el.textContent = out;
+    if (p < 1) requestAnimationFrame(step); else el.textContent = final;
+  };
+  requestAnimationFrame(step);
+}
+const scrIO = new IntersectionObserver(es => {
+  for (const e of es) {
+    if (!e.isIntersecting) continue;
+    const el = e.target;
+    el.dataset.text ||= el.textContent;
+    scrambleTo(el, el.dataset.text);
+  }
+}, { threshold: 0.6 });
+document.querySelectorAll('[data-scramble]').forEach(el => scrIO.observe(el));
+
+/* =========================================================
+   input
+   ========================================================= */
+addEventListener('pointermove', e => {
+  const c = e.clientX * dpr / CW, r = e.clientY * dpr / CH;
+  const now = simTime;
+  const dtm = Math.max(0.008, now - mouse.last);
+  if (mouse.active && dtm < 0.2) {
+    mouse.vx = lerp(mouse.vx, clamp((c - mouse.x) / dtm, -260, 260), 0.35);
+    mouse.vy = lerp(mouse.vy, clamp((r - mouse.y) / dtm, -120, 120), 0.35);
+  } else { mouse.vx = 0; mouse.vy = 0; }
+  mouse.x = c; mouse.y = r; mouse.last = now; mouse.active = true;
+}, { passive: true });
+addEventListener('pointerleave', () => { mouse.active = false; });
+document.addEventListener('mouseleave', () => { mouse.active = false; });
+addEventListener('click', e => {
+  if (e.target.closest('a,button,input,label,summary')) return;
+  blast(e.clientX * dpr / CW, e.clientY * dpr / CH);
+});
+document.getElementById('again').addEventListener('click', () => scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }));
+const stormBtn = document.getElementById('storm');
+stormBtn.addEventListener('click', () => { storm = !storm; stormBtn.setAttribute('aria-pressed', String(storm)); stormBtn.textContent = storm ? 'метель: вкл' : 'метель везде'; });
+railLinks.forEach(a => a.addEventListener('click', e => {
+  e.preventDefault();
+  const k = +a.dataset.go;
+  scrollTo({ top: anchors[k] ?? 0, behavior: reduced ? 'auto' : 'smooth' });
+}));
+
+/* =========================================================
+   layout / boot
+   ========================================================= */
+function layout() {
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  vw = innerWidth; vh = innerHeight;
+  const small = vw < 720;
+  const targetRows = small ? 64 : 58;
+  const chCss = clamp(vh / targetRows, small ? 9.5 : 11, 20);
+  CH = Math.max(8, Math.round(chCss * dpr));
+  fontDev = Math.max(7, Math.round(CH * 0.78));
+  const mc = document.createElement('canvas').getContext('2d');
+  mc.font = `500 ${fontDev}px ${MONO}`;
+  CW = Math.max(4, Math.round(mc.measureText('M').width));
+  ASPECT = CH / CW;
+  cols = Math.ceil(vw * dpr / CW);
+  rows = Math.ceil(vh * dpr / CH);
+  N = cols * rows;
+  canvas.width = cols * CW; canvas.height = rows * CH;
+  canvas.style.width = (cols * CW / dpr) + 'px';
+  canvas.style.height = (rows * CH / dpr) + 'px';
+  gGl = new Uint8Array(N); gR = new Float32Array(N); gG = new Float32Array(N); gB = new Float32Array(N); gA = new Float32Array(N);
+  bR = new Float32Array(N); bG = new Float32Array(N); bB = new Float32Array(N); bA = new Float32Array(N);
+  Lr = new Float32Array(N); Lg = new Float32Array(N); Lb = new Float32Array(N);
+  Tr = new Float32Array(N); Tg = new Float32Array(N); Tb = new Float32Array(N);
+  u8Glyph = new Uint8Array(N); u8Fg = new Uint8ClampedArray(N * 4); u8Bg = new Uint8ClampedArray(N * 4); u8Light = new Uint8ClampedArray(N * 4);
+  buildAtlas();
+  if (gl) allocTextures(); else alloc2D();
+  computeAnchors();
+  updateEnv(window.scrollY);
+  updateCamera();
+  buildTitle();
+}
+
+let resizeT = 0, lastW = 0, lastH = 0;
+function onResize() {
+  const w = innerWidth, h = innerHeight;
+  // phones resize the viewport while the address bar slides; ignore small height-only changes
+  if (w === lastW && Math.abs(h - lastH) < 140) { computeAnchors(); return; }
+  lastW = w; lastH = h;
+  layout();
+}
+addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(onResize, 120); });
+
+async function boot() {
+  try {
+    await Promise.race([
+      Promise.all([
+        document.fonts.load(`500 16px "JetBrains Mono"`, 'Mo.:#|/\\^ХЛЕБ'),
+        document.fonts.load(`700 64px Oswald`, 'ПЕРВЫЙ СНЕГ'),
+      ]),
+      new Promise(r => setTimeout(r, 2500)),
+    ]);
+  } catch (e) { /* fall back to system fonts */ }
+  buildWorld();
+  if (gl) { try { glInit(); } catch (e) { console.warn(e); gl = null; } }
+  if (!gl && !ctx2d) ctx2d = canvas.getContext('2d');
+  lastW = innerWidth; lastH = innerHeight;
+  layout();
+  scrollSm = window.scrollY;
+  // fill the sky before the first frame
+  const area = cols * rows / 1000;
+  for (let l = 0; l < 3; l++) for (let k = 0; k < DENS[l] * area * env.snow; k++) spawnFlake(l, true);
+  last = performance.now();
+  introStart = 0;
+  requestAnimationFrame(frame);
+  document.fonts.ready.then(() => { atlasDirty = true; buildTitle(); });
+}
+boot();
+})();
+</script>
+</body>
+</html>
