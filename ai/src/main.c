@@ -154,10 +154,36 @@ static double bench_once(const Model *m, int ntok, double *prefill_tps) {
     return (n - npre) / (t2 - t1);
 }
 
+/* Модель из пресета со случайными весами — чтобы узнать скорость ДО обучения. */
+static void model_random(Model *m, const char *preset, int vocab, const char *quant) {
+    Config c;
+    if (!preset_get(preset, &c)) { preset_list(stderr); die("неизвестный пресет '%s'", preset); }
+    c.vocab_size = vocab;
+    char err[128];
+    if (!config_validate(&c, err, sizeof err)) die("конфиг: %s", err);
+    size_t np = params_count(&c);
+    float *p = xmalloc(4 * np);
+    uint64_t r = 7;
+    for (size_t i = 0; i < np; i++) p[i] = (rng_f32(&r) - 0.5f) * 0.05f;
+    model_from_f32(m, &c, p);
+    for (int i = 0; i < c.n_layers * c.dim; i++) { ((float *)m->attn_norm)[i] = 1; ((float *)m->ffn_norm)[i] = 1; }
+    for (int i = 0; i < c.dim; i++) ((float *)m->final_norm)[i] = 1;
+    int qt = !strcmp(quant, "q4") ? QT_Q4 : !strcmp(quant, "f32") ? QT_F32 : QT_Q8;
+    model_quantize_mem(m, qt);
+}
+
 static int cmd_bench(Args *a) {
     Model m;
-    const char *path = arg_model(a);
-    model_load(&m, path);
+    const char *preset = arg_str(a, "--preset", NULL);
+    char label[256];
+    if (preset) {
+        snprintf(label, sizeof label, "пресет %s (случайные веса — только замер скорости)", preset);
+        model_random(&m, preset, arg_int(a, "--vocab", 16384), arg_str(a, "--quant", "q8"));
+    } else {
+        snprintf(label, sizeof label, "%s", arg_model(a));
+        model_load(&m, label);
+    }
+    const char *path = label;
     print_model_card(&m, path);
     int n = arg_int(a, "-n", 256);
     printf("  процессор: %s\n", pool_cpu_info());
@@ -509,6 +535,7 @@ static void usage(void) {
     printf("  corax chat     -m МОДЕЛЬ [-t потоки] [--temp 0.8] [--system \"...\"]   чат\n");
     printf("  corax gen      -m МОДЕЛЬ -p \"начало текста\" [-n 200]                 продолжение текста\n");
     printf("  corax bench    -m МОДЕЛЬ [--sweep]                                   замер скорости\n");
+    printf("  corax bench    --preset m70 [--quant q8|q4]                          скорость модели ДО обучения\n");
     printf("  corax info     -m МОДЕЛЬ                                             сведения о модели\n");
     printf("  corax train    --preset small --data data/train.bin --val data/val.bin --out models/base.bin\n");
     printf("  corax finetune --model models/base.bin --data data/sft --out models/chat.bin\n");

@@ -41,6 +41,7 @@ typedef struct {
 void model_load(Model *m, const char *path);
 void model_from_f32(Model *m, const Config *c, float *params); /* без копирования */
 void model_free(Model *m);
+void model_quantize_mem(Model *m, int qt); /* квантовать f32-модель в памяти (для замеров) */
 size_t model_weight_bytes(const Model *m);
 
 void state_init(State *s, const Config *c, int seq_len);

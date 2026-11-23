@@ -342,6 +342,29 @@ void model_from_f32(Model *m, const Config *c, float *params) {
     map_weights(m, (const uint8_t *)params, params_count(c) * 4, QT_F32);
 }
 
+static void quantize_mat(Mat *mt, int qt) {
+    if (mt->qt != QT_F32 || qt == QT_F32) return;
+    size_t rows = mt->rows, cols = mt->cols;
+    const float *src = mt->w;
+    float *s = xmalloc(sizeof(float) * rows * (cols / QGS));
+    void *q = xmalloc(qt == QT_Q8 ? rows * cols : rows * cols / 2);
+    for (size_t r = 0; r < rows; r++) {
+        if (qt == QT_Q8) quantize_q8(src + r * cols, (int8_t *)q + r * cols, s + r * (cols / QGS), (int)cols);
+        else quantize_q4(src + r * cols, (uint8_t *)q + r * cols / 2, s + r * (cols / QGS), (int)cols);
+    }
+    mt->qt = qt; mt->w = q; mt->s = s;
+}
+
+void model_quantize_mem(Model *m, int qt) {
+    quantize_mat(&m->emb, qt);
+    for (int l = 0; l < m->c.n_layers; l++) {
+        quantize_mat(&m->wq[l], qt); quantize_mat(&m->wk[l], qt); quantize_mat(&m->wv[l], qt);
+        quantize_mat(&m->wo[l], qt); quantize_mat(&m->w1[l], qt); quantize_mat(&m->w2[l], qt);
+        quantize_mat(&m->w3[l], qt);
+    }
+    m->qtype = qt;
+}
+
 void model_free(Model *m) {
     free(m->wq); free(m->wk); free(m->wv); free(m->wo); free(m->w1); free(m->w2); free(m->w3);
     if (m->has_tok) tok_free(&m->tok);

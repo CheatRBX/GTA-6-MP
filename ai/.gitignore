@@ -10,3 +10,4 @@ data/*.idx
 models/
 *.opt
 *.tmp
+data[0-9]*/
