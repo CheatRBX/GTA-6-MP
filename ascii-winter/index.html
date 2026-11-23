@@ -83,15 +83,26 @@ main{position:relative;z-index:2}
 footer{position:relative;z-index:2;padding:28vh var(--gutter) 28px;font-size:12px;color:var(--muted);letter-spacing:.06em;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px}
 footer span{font-variant-numeric:tabular-nums}
 
+/* only-mouse / only-touch swap hints for touch screens */
+.only-touch{display:none}
+@media (hover:none){
+  .only-mouse{display:none}
+  .only-touch{display:inline}
+  li.only-touch{display:list-item}
+}
+.finale{padding-top:35vh}
 @media (max-width:900px){
   .rail{display:none}
 }
 @media (max-width:720px){
-  body{font-size:14px}
+  body{font-size:13px}
   .bar{padding:12px 16px;font-size:11px}
   .bar .hide-s{display:none}
   .chapter,.finale{min-height:175vh;padding:0 16px}
-  .panel{top:8vh;width:100%;padding:16px 18px 14px}
+  .panel{top:8vh;width:100%;padding:14px 16px 12px}
+  .panel p{margin:0 0 .6em}
+  #ch6,.finale{display:flex;flex-direction:column;justify-content:flex-end;padding-top:0}
+  #ch6 .panel,.finale .panel{top:auto;bottom:12px}
   .chapter[data-side="right"] .panel{margin-right:0}
   .panel h2{font-size:20px}
   .readout{font-size:12px}
@@ -127,11 +138,12 @@ footer span{font-variant-numeric:tabular-nums}
     <h1 class="sr-only">Первый снег</h1>
     <div class="hero-copy" data-panel="bare">
       <p class="kicker" data-scramble>// зима, собранная из текста</p>
-      <p class="lede">Здесь нет ни одной картинки. Небо, город, огни и снег — это <b data-live="cells">0</b> символов на экране, и каждый подчиняется физике: падает, копится, съезжает с крыш и светится.</p>
+      <p class="lede">Здесь нет ни одной картинки. Небо, город, огни и снег — это <b data-live="cells">0 символов</b> на экране. Снег среди них — частицы с массой: он падает, копится на крышах и съезжает со склонов.</p>
       <ul class="hints">
         <li><kbd>[↓]</kbd> листай — камера едет по городу</li>
-        <li><kbd>[мышь]</kbd> разгоняет снег</li>
-        <li><kbd>[клик]</kbd> снежный удар</li>
+        <li class="only-mouse"><kbd>[мышь]</kbd> разгоняет снег</li>
+        <li class="only-mouse"><kbd>[клик]</kbd> снежный удар</li>
+        <li class="only-touch"><kbd>[тап]</kbd> снежный удар</li>
       </ul>
     </div>
   </section>
@@ -142,7 +154,7 @@ footer span{font-variant-numeric:tabular-nums}
       <h2 id="h1t" aria-label="Снег, у которого есть вес"><span data-scramble aria-hidden="true">Снег, у которого есть вес</span></h2>
       <p>Каждая снежинка — частица с массой и сопротивлением воздуха. Тяжёлые падают быстрее и почти не замечают ветра. Лёгкие дольше висят в воздухе и уходят вбок.</p>
       <p>Снег идёт в три слоя глубины, и каждый слой едет со своей скоростью. Поэтому у плоского экрана появляется объём.</p>
-      <p class="tip"><kbd>&gt;</kbd> Проведи мышью сквозь снегопад: курсор тянет за собой воздух, а снежинки тормозят об него.</p>
+      <p class="tip only-mouse"><kbd>&gt;</kbd> Проведи мышью сквозь снегопад: курсор тянет за собой воздух, а снежинки тормозят об него.</p>
       <dl class="readout">
         <dt>в воздухе</dt><dd data-live="flakes">—</dd>
         <dt>скорость падения</dt><dd data-live="fall">—</dd>
@@ -157,10 +169,10 @@ footer span{font-variant-numeric:tabular-nums}
       <h2 id="h2t" aria-label="Упавший снег остаётся"><span data-scramble aria-hidden="true">Упавший снег остаётся</span></h2>
       <p>Коснувшись земли, снег не исчезает. Он ложится на крыши, на перила забора, на ветки и даже на эту рамку — клетка за клеткой.</p>
       <p>Где склон круче 45°, снег съезжает маленькой лавиной. У стен растут сугробы, а над трубами он тает.</p>
-      <p class="tip"><kbd>&gt;</kbd> Кликни по крыше — и сбей с неё снег.</p>
+      <p class="tip"><kbd>&gt;</kbd> <span class="only-mouse">Кликни</span><span class="only-touch">Коснись</span> крыши — и сбей с неё снег.</p>
       <dl class="readout">
         <dt>лежит в кадре</dt><dd data-live="settled">—</dd>
-        <dt>лавин сошло</dt><dd data-live="slides">—</dd>
+        <dt>съехало с краёв</dt><dd data-live="slides">—</dd>
         <dt>окон горит</dt><dd data-live="windows">—</dd>
       </dl>
     </article>
@@ -202,7 +214,7 @@ footer span{font-variant-numeric:tabular-nums}
       <p>На лёд снег не ложится — ветер сдувает его дальше, к берегу.</p>
       <dl class="readout">
         <dt>отражено строк</dt><dd data-live="mirror">—</dd>
-        <dt>снег на льду</dt><dd>0 клеток</dd>
+        <dt>сдуто к берегу</dt><dd data-live="drifted">—</dd>
       </dl>
     </article>
   </section>
@@ -211,10 +223,10 @@ footer span{font-variant-numeric:tabular-nums}
     <article class="panel" data-panel aria-labelledby="h6t">
       <div class="panel-head"><span class="num">06</span><span>сияние</span></div>
       <h2 id="h6t" aria-label="Небо начинает двигаться"><span data-scramble aria-hidden="true">Небо начинает двигаться</span></h2>
-      <p>Над холмом — северное сияние. Это шум, вытянутый по вертикали, и три цвета: зелёный у нижнего края, бирюзовый в середине, фиолетовый вверху.</p>
+      <p>Над холмом — северное сияние. Это шум, вытянутый по вертикали, в два цвета: зелёный у нижнего края, бледно-бирюзовый выше. Лента медленно складывается и разворачивается.</p>
       <p>Его свет падает на снег, и сугробы под ним становятся зеленоватыми. Снег почти перестал.</p>
       <dl class="readout">
-        <dt>яркость сияния</dt><dd data-live="aurora">—</dd>
+        <dt>светится неба</dt><dd data-live="aurora">—</dd>
         <dt>в воздухе</dt><dd data-live="flakes2">—</dd>
       </dl>
     </article>
@@ -279,7 +291,7 @@ const G_DOT = g('.'), G_COMMA = g(','), G_COLON = g(':'), G_APOS = g("'"), G_BT 
   G_AT = g('@'), G_o = g('o'), G_O = g('O'), G_LOW = g('▄'), G_UP = g('▀'), G_SH3 = g('▓'),
   G_SH2 = g('▒'), G_SH1 = g('░'), G_OVER = g('‾'), G_LT = g('<'), G_GT = g('>');
 const RAMP = [...' .:-=+*#%@'].map(g);
-const AUR = [...' .\':|!'].map(g);
+const AUR = [...' .\'`:|'].map(g);
 const CLOUD = [...' .-~=:'].map(g);
 const SCRAMBLE_SET = [...'#%@*+=-:.░▒▓/\\|'].map(g);
 const FLIP = new Uint8Array(256);
@@ -448,7 +460,7 @@ function alloc2D() {
 /* =========================================================
    world
    ========================================================= */
-const WW = 1500, WH = 100, GYB = 86;
+const WW = 1500, WH = 116, GYB = 86;
 const WN = WW * WH;
 const wSolid = new Uint8Array(WN), wGlyph = new Uint8Array(WN), wCol = new Uint32Array(WN), wTag = new Uint16Array(WN), wSnow = new Float32Array(WN);
 const groundY = new Int16Array(WW), gAvg = new Float32Array(WW);
@@ -589,7 +601,7 @@ function pine(x, h) {
       if (i === 0) { c = '^'; col = PINE_E; }
       else if (xx === x - hw) { c = '/'; col = PINE_E; }
       else if (xx === x + hw) { c = '\\'; col = PINE_E; }
-      else { const hh = hash2(xx, y); c = hh < 0.62 ? '^' : (hh < 0.85 ? '*' : 'A'); col = hh < 0.6 ? PINE_C : PINE_D; }
+      else { const hh = hash2(xx, y); c = hh < 0.75 ? '^' : (hh < 0.9 ? ',' : ' '); col = hh < 0.6 ? PINE_C : PINE_D; }
       setArt(xx, y, c, col, M_PINE);
     }
   }
@@ -635,7 +647,7 @@ function line(x0, y0, x1, y1, col, mat) {
 const ASPECT_WORLD = 2.1;
 function bareTree(x) {
   const gy = groundY[x];
-  const C = hex('#5d5048'), CE = hex('#74655b');
+  const C = hex('#7a6a5e'), CE = hex('#9a8a7c');
   const branch = (bx, by, ang, len, depth) => {
     const ex = bx + Math.cos(ang) * len * ASPECT_WORLD, ey = by - Math.sin(ang) * len;
     line(bx, by, ex, ey, depth > 2 ? C : CE, M_WOOD);
@@ -765,10 +777,9 @@ function buildWorld() {
 
   // 03 wind
   fence(490, 560);
-  bareTree(526);
   windmillAt(568);
   fence(584, 616);
-  pine(612, 22);
+  bareTree(598);
   house({ x: 624, w: 10, h: 4, pal: 'wood', style: 'planks', roof: 'a', door: 3 });
   pine(642, 12);
 
@@ -837,7 +848,7 @@ const CHAPS = [
     skyTop: C3(0.165, 0.172, 0.182), skyMid: C3(0.245, 0.252, 0.262), skyBot: C3(0.33, 0.337, 0.345), amb: C3(0.9, 0.92, 0.96) },
   { x: 735, camK: 7, wind: 1.0, turb: 0.5, snow: 0.8, win: 1, lamps: 1, aurora: 0, dawn: 0, stars: 0.6, moon: 0.7, clouds: 0.45, fog: 0.55, accum: 1,
     skyTop: C3(0.07, 0.07, 0.074), skyMid: C3(0.13, 0.122, 0.12), skyBot: C3(0.235, 0.205, 0.185), amb: C3(0.68, 0.7, 0.78) },
-  { x: 910, camK: 8, wind: 0.6, turb: 0.4, snow: 0.45, win: 1, lamps: 0.9, aurora: 0.05, dawn: 0, stars: 1, moon: 1, clouds: 0.3, fog: 0.7, accum: 1,
+  { x: 910, camK: 20, wind: 0.6, turb: 0.4, snow: 0.45, win: 1, lamps: 0.9, aurora: 0.05, dawn: 0, stars: 1, moon: 1, clouds: 0.3, fog: 0.7, accum: 1,
     skyTop: C3(0.06, 0.068, 0.08), skyMid: C3(0.11, 0.122, 0.14), skyBot: C3(0.18, 0.2, 0.225), amb: C3(0.74, 0.8, 0.9) },
   { x: 1086, camK: 5, wind: 0.4, turb: 0.3, snow: 0.18, win: 1, lamps: 0, aurora: 1, dawn: 0, stars: 1, moon: 0.25, clouds: 0.05, fog: 0.3, accum: 1,
     skyTop: C3(0.045, 0.062, 0.07), skyMid: C3(0.075, 0.105, 0.115), skyBot: C3(0.115, 0.155, 0.165), amb: C3(0.66, 0.86, 0.82) },
@@ -874,7 +885,7 @@ function updateEnv(sy) {
   const ax = i === 0 ? heroX : A.x, bx = B.x;
   env.x = lerp(ax, bx, tt);
   env.chapter = tt < 0.5 ? i : i + 1;
-  env.dissolve = clamp((sy - innerHeight * 0.03) / (innerHeight * 0.62), 0, 1);
+  env.dissolve = clamp((sy - innerHeight * 0.03) / (innerHeight * 0.4), 0, 1);
   if (storm) { env.wind = Math.max(env.wind, 6.5); env.snow = Math.max(env.snow, 1.5); env.turb = Math.max(env.turb, 1.4); }
   if (reduced) env.snow *= 0.4;
 }
@@ -906,9 +917,9 @@ function buildTitle() {
   const lines = two ? ['ПЕРВЫЙ', 'СНЕГ'] : ['ПЕРВЫЙ СНЕГ'];
   heroCamY = Math.round(camTargetY(Math.max(cols / 2, 60), CHAPS[0].camK));
   const maxW = Math.min(cols - (two ? 4 : 10), 230);
-  const maxH = Math.round(rows * (two ? 0.36 : 0.27));
+  const maxH = Math.round(rows * (two ? 0.38 : 0.27));
   // sample cells taller than they are wide; a stretch > 1 makes letters taller than the font draws them
-  const stretch = two ? 1.85 : 1.12;
+  const stretch = two ? 1.5 : 1.12;
   const SX = 4, SY = Math.max(2, Math.round(4 * ASPECT / stretch));
   const cv = document.createElement('canvas');
   cv.width = maxW * SX; cv.height = maxH * SY;
@@ -927,7 +938,10 @@ function buildTitle() {
   c2.textBaseline = 'alphabetic';
   const totalH = (asc + desc) * lines.length + asc * gap * (lines.length - 1);
   let y = (cv.height - totalH) / 2 + asc;
-  for (const l of lines) { c2.fillText(l, cv.width / 2, y); y += asc + desc + asc * gap; }
+  c2.lineWidth = fs * (two ? 0.07 : 0.03);
+  c2.strokeStyle = '#fff';
+  c2.lineJoin = 'round';
+  for (const l of lines) { c2.fillText(l, cv.width / 2, y); c2.strokeText(l, cv.width / 2, y); y += asc + desc + asc * gap; }
   const data = c2.getImageData(0, 0, cv.width, cv.height).data;
   const cov = new Float32Array(maxW * maxH);
   for (let cy = 0; cy < maxH; cy++) for (let cx = 0; cx < maxW; cx++) {
@@ -939,7 +953,7 @@ function buildTitle() {
   for (let cy = 0; cy < maxH; cy++) for (let cx = 0; cx < maxW; cx++) if (cov[cy * maxW + cx] > 0.32) { minY = Math.min(minY, cy); maxY = Math.max(maxY, cy); }
   if (maxY < 0) return;
   const usedH = maxY - minY + 1;
-  titleTop = heroCamY + Math.round(rows * (two ? 0.15 : 0.15));
+  titleTop = heroCamY + Math.round(rows * (two ? 0.16 : 0.17));
   titleH = usedH;
   const x0 = Math.floor((cols - maxW) / 2) + Math.round(Math.max(cols / 2, 60) - cols / 2);
   const list = [];
@@ -951,7 +965,7 @@ function buildTitle() {
     const i = wy * WW + wx;
     if (wSolid[i] !== 0) continue;
     const inner = (cov[cy * maxW + cx - 1] > 0.32) + (cov[cy * maxW + cx + 1] > 0.32) + (cy > 0 && cov[(cy - 1) * maxW + cx] > 0.32) + (cy < maxH - 1 && cov[(cy + 1) * maxW + cx] > 0.32);
-    const glyph = (v > 0.68 || inner >= 4) ? G_HASH : G_PLUS;
+    const glyph = (two || v > 0.68 || inner >= 4) ? G_HASH : G_PLUS;
     list.push([i, wx, wy, glyph, cx / maxW]);
   }
   tN = list.length;
@@ -1033,7 +1047,13 @@ function spawnSmoke(x, y) {
 }
 
 /* snow deposition */
-const stats = { settled: 0, slides: 0, lifted: 0, fallSum: 0, fallN: 0, frameMs: 16, mirror: 0, lit: 0, litTotal: 0, lampsOn: 0 };
+const stats = { settled: 0, slides: 0, lifted: 0, drifted: 0, auroraCells: 0, fallSum: 0, fallN: 0, frameMs: 16, mirror: 0, lit: 0, litTotal: 0, lampsOn: 0 };
+function driftToShore(amt) {
+  const x = windNow >= 0 ? LAKE1 + 2 + ((Math.random() * 5) | 0) : LAKE0 - 2 - ((Math.random() * 5) | 0);
+  let y = 30;
+  while (y < WH - 1 && wSolid[y * WW + x] === 0 && wSnow[y * WW + x] < 1) y++;
+  if (depositAt((y - 1) * WW + x, amt)) stats.drifted++;
+}
 function depositAt(i, amt) {
   let guard = 0;
   while (wSnow[i] >= 1) { i -= WW; if (i < WW || wSolid[i] !== 0 || ++guard > 3) return false; }
@@ -1049,6 +1069,10 @@ function depositAt(i, amt) {
     if (windNow > 4) cap += 1;
   }
   if (d >= cap) return false;
+  for (let dd = -1; dd <= 1; dd += 2) {
+    const n = i + dd;
+    if (wSolid[n] === 0 && wSolid[n + WW] === 0 && wSnow[n + WW] < 1 && wSolid[n + 2 * WW] === 0 && wSnow[n + 2 * WW] < 1) return false;
+  }
   wSnow[i] = Math.min(1, wSnow[i] + amt);
   return true;
 }
@@ -1153,6 +1177,7 @@ const rings = [];
 function updateParticles(dt, t) {
   gustNow = 0.6 + 0.8 * noise1(t * 0.32 + 4);
   windNow = env.wind * gustNow;
+  const prevCount = [layerCount[0], layerCount[1], layerCount[2]];
   layerCount[0] = layerCount[1] = layerCount[2] = 0;
   let fallSum = 0, fallN = 0;
   const MR = 7, MR2 = MR * MR;
@@ -1161,6 +1186,9 @@ function updateParticles(dt, t) {
   const target = [0, 0, 0];
   const area = cols * rows / 1000;
   for (let l = 0; l < 3; l++) target[l] = Math.round(DENS[l] * area * env.snow * quality);
+  // when the snowfall eases, thin the surplus instead of waiting for old flakes to land
+  const over = [prevCount[0] > target[0] * 1.1, prevCount[1] > target[1] * 1.1, prevCount[2] > target[2] * 1.1];
+  const mSpeed = Math.min(1, Math.hypot(mvx, mvy) / 30);
 
   for (let i = pn - 1; i >= 0; i--) {
     const k = pkind[i];
@@ -1175,6 +1203,7 @@ function updateParticles(dt, t) {
       continue;
     }
     const l = play[i];
+    if (k === K_FLAKE && over[l] && Math.random() < dt * 0.5) { killP(i); continue; }
     const m = pm[i];
     const cx0 = camX * PAR[l], cy0 = camY * PARY[l];
     let x = px[i], y = py[i];
@@ -1186,16 +1215,19 @@ function updateParticles(dt, t) {
     const nx = x * 0.045, ny = y * 0.09;
     const tx = (noise2(nx + t * 0.45, ny - t * 0.15) - 0.5) * 2;
     const ty = (noise2(nx - t * 0.3 + 40, ny + t * 0.25) - 0.5) * 2;
-    let ax = windNow * WINDF[l] + tx * env.turb * 2.4 + Math.sin(t * (1.1 + m) + pseed[i]) * 0.55;
-    let ay = TERM[l] * (0.55 + 0.5 * m) + ty * env.turb * 1.5;
+    let turb = env.turb;
+    if (l === 1) { const gx = x | 0; if (gx >= 0 && gx < WW && groundY[gx] - y < 5) turb *= 2; } // eddies near the ground
+    let ax = windNow * WINDF[l] + tx * turb * 2.4 + Math.sin(t * (1.1 + m) + pseed[i]) * 0.55;
+    let ay = TERM[l] * (0.55 + 0.5 * m) + ty * turb * 1.5;
     if (k === K_CHUNK) { ax = pvx[i] * 0.98; ay = 9; }
     if (mActive) {
       const dxr = (sx - mouse.x) / ASPECT, dyr = sy - mouse.y;
       const d2 = dxr * dxr + dyr * dyr;
       if (d2 < MR2) {
         const d = Math.sqrt(d2) + 1e-3, f = 1 - d / MR;
-        ax += (dxr / d) * f * 9 + mvx * f * 0.9;
-        ay += (dyr / d) * f * 9 + mvy * f * 0.9;
+        const push = f * 9 * (0.12 + 0.88 * mSpeed);
+        ax += (dxr / d) * push + mvx * f * 1.6;
+        ay += (dyr / d) * push + mvy * f * 1.6;
       }
     }
     const kk = 1 - Math.exp(-DRAG[l] / m * dt);
@@ -1212,7 +1244,8 @@ function updateParticles(dt, t) {
         const ni = cyi * WW + cxi;
         if (wSolid[ni] !== 0 || wSnow[ni] >= 1) {
           const oxi = Math.floor(ox), oyi = Math.floor(oy);
-          if (oyi >= 1 && oyi < WH - 1 && oxi >= 1 && oxi < WW - 1) {
+          if (wSolid[ni] === M_ICE) driftToShore(pa[i] * env.accum);
+          else if (oyi >= 1 && oyi < WH - 1 && oxi >= 1 && oxi < WW - 1) {
             const oi = oyi * WW + oxi;
             if (oi !== ni && wSolid[oi] === 0) depositAt(oi, pa[i] * env.accum);
           }
@@ -1231,7 +1264,7 @@ function updateParticles(dt, t) {
           if (kk2 < 0 || kk2 >= p.snow.length) continue;
           const surf = p.r0 - 1 - p.snow[kk2];
           if (osy < surf && nsy >= surf) {
-            if (p.snow[kk2] < 2.2) p.snow[kk2] += pa[i] * 1.6;
+            if (p.snow[kk2] < 1.1 + 1.1 * noise1((p.c0 + kk2) * 0.18)) p.snow[kk2] += pa[i] * 1.6;
             hit = true;
             break;
           }
@@ -1291,9 +1324,9 @@ function blast(sc, sr) {
     const i = y * WW + x;
     const s = wSnow[i];
     if (s > 0.05) {
-      const ang = Math.atan2(dy - 1.2, dx / ASPECT);
+      const ang = Math.atan2(dy - 1.2, dx / ASPECT) + (Math.random() - 0.5) * 0.8;
       const sp = 5 + Math.random() * 6;
-      eject(x, y, s * 0.9, Math.cos(ang) * sp, Math.sin(ang) * sp - 3);
+      eject(x, y, s * 0.9, Math.cos(ang) * sp, Math.sin(ang) * sp - 1 - Math.random() * 5);
       wSnow[i] = 0;
     }
   }
@@ -1310,7 +1343,6 @@ function blast(sc, sr) {
     }
   }
   rings.push({ c: sc, r: sr, t0: simTime });
-  stats.slides++;
 }
 
 /* =========================================================
@@ -1335,7 +1367,7 @@ function buildLights(t) {
     const sx = L.x - camXi, sy = L.y - camYi;
     if (on > 0.5) lampsOn++;
     if (on > 0.01 && sx > -30 && sx < cols + 30 && sy > -20 && sy < rows + 20)
-      lights.push({ x: sx, y: sy, r2: 13 * 13, r: 1.0, g: 0.76, b: 0.46, I: on * 1.15, cone: true });
+      lights.push({ x: sx, y: sy, r2: 13 * 13, r: 1.0, g: 0.74, b: 0.42, I: on * 1.8, cone: true });
   }
   for (let k = 0; k < windows.length; k++) {
     const w = windows[k];
@@ -1395,7 +1427,7 @@ function drawSky(t) {
   // sun at dawn (behind the mountains)
   if (dw > 0.02) {
     const sxc = cols * (cols < 120 ? 0.72 : 0.83) - (camX - (1150 - cols / 2)) * 0.03;
-    const syc = rows * 0.5 - dw * rows * 0.2;
+    const syc = rows * 0.56 - dw * rows * 0.14;
     const R = Math.max(3, rows * 0.06), Rc = R * ASPECT;
     for (let r = Math.floor(syc - R * 3); r <= Math.ceil(syc + R * 3); r++) {
       if (r < 0 || r >= rows) continue;
@@ -1404,8 +1436,8 @@ function drawSky(t) {
         const dx = (c + 0.5 - sxc) / Rc, dy = (r + 0.5 - syc) / R, d = Math.sqrt(dx * dx + dy * dy);
         const i = r * cols + c;
         if (d < 1) {
-          const b = 0.75 + 0.25 * (1 - d);
-          put(i, RAMP[clamp(Math.round(5 + (1 - d) * 4), 1, 9)], 1.0 * b, 0.88 * b, 0.68 * b, dw);
+          const b = 0.8 + 0.25 * (1 - d);
+          put(i, d > 0.8 ? G_STAR : G_HASH, 1.0 * b, 0.88 * b, 0.66 * b, dw);
           emit(i, 0.32 * dw, 0.24 * dw, 0.14 * dw);
         } else if (d < 3) {
           const ang = Math.atan2(dy, dx);
@@ -1419,9 +1451,9 @@ function drawSky(t) {
   }
   // moon
   if (mo > 0.02) {
-    const mxc = cols * 0.74 - (camX - (heroX - cols / 2)) * 0.012;
-    const R = Math.max(2.6, rows * (cols < 120 ? 0.04 : 0.052)), Rc = R * ASPECT;
-    const myc = R + 1.6 + (heroCamY - camY) * 0.15;
+    const mxc = cols * (cols < 120 ? 0.6 : 0.74) - (camX - (heroX - cols / 2)) * 0.012;
+    const R = Math.max(2.6, rows * (cols < 120 ? 0.042 : 0.062)), Rc = R * ASPECT;
+    const myc = (cols < 120 ? R + 3.2 : R + 1.4) + (heroCamY - camY) * 0.15;
     for (let r = Math.floor(myc - R - 1); r <= Math.ceil(myc + R + 1); r++) {
       if (r < 0 || r >= rows) continue;
       for (let c = Math.floor(mxc - Rc - 2); c <= Math.ceil(mxc + Rc + 2); c++) {
@@ -1432,33 +1464,44 @@ function drawSky(t) {
         const nz = Math.sqrt(1 - d2);
         const lam = clamp(-0.55 * dx - 0.3 * dy + 0.78 * nz, 0, 1);
         const cr = noise2(dx * 3.1 + 7, dy * 3.1 + 3);
-        const b = clamp((0.2 + 0.8 * lam) * (0.86 + 0.24 * (cr - 0.5)), 0, 1);
-        put(i, RAMP[clamp(Math.round(2 + b * 7.4), 1, 9)], 0.86 * b + 0.12, 0.87 * b + 0.12, 0.84 * b + 0.13, mo);
-        if (d2 < 0.75) back(i, 0.28 + 0.16 * b, 0.29 + 0.16 * b, 0.31 + 0.15 * b, 0.3 * mo);
+        const b = clamp((0.2 + 0.8 * lam) * (0.95 + 0.1 * (cr - 0.5)), 0, 1);
+        const gl_ = lam > 0.45 ? G_HASH : lam > 0.18 ? G_COLON : G_DOT;
+        put(i, gl_, 0.84 * b + 0.16, 0.85 * b + 0.16, 0.8 * b + 0.17, mo);
         emit(i, 0.07 * mo, 0.075 * mo, 0.08 * mo);
       }
     }
   }
-  // aurora
+  // aurora: one continuous ribbon; folds change brightness along it, rays add fine striation
+  stats.auroraCells = 0;
   if (au > 0.02) {
     const ox = camX * 0.05;
     for (let c = 0; c < cols; c++) {
       const x = c + ox;
+      let panelFade = 1;
+      if (cols >= 120) panelFade = 1 - 0.85 * sstep(cols * 0.5, cols * 0.62, c);
       for (let k = 0; k < 2; k++) {
-        const base = rows * (0.3 + 0.12 * k) + Math.sin(x * 0.03 + t * 0.22 + k * 2.1) * rows * 0.07 + (noise1(x * 0.018 + t * 0.09 + k * 9) - 0.5) * rows * 0.16 + (heroCamY - camY) * 0.15;
-        const rays = 0.25 + 0.75 * Math.pow(noise1(x * 0.32 + t * 0.55 + k * 3.1), 2);
-        const amp = au * (k === 0 ? 1 : 0.65) * (0.4 + 0.6 * noise1(x * 0.01 - t * 0.05 + k));
-        const top = Math.max(0, Math.floor(base - 24)), bot = Math.min(rows - 1, Math.ceil(base + 3));
+        const base = rows * (0.34 + 0.11 * k)
+          + Math.sin(x * 0.022 + t * 0.15 + k * 2.1) * rows * 0.08
+          + Math.sin(x * 0.051 - t * 0.11 + k) * rows * 0.035
+          + (heroCamY - camY) * 0.15;
+        const fold = 0.5 + 0.5 * Math.sin(x * 0.045 + t * 0.22 + k * 1.3);
+        const rays = 0.72 + 0.28 * noise1(x * 0.45 + t * 0.7 + k * 3);
+        const amp = au * (k ? 0.5 : 1) * (0.25 + 0.75 * fold) * rays * panelFade;
+        if (amp < 0.05) continue;
+        const height = 8 + 6 * noise1(x * 0.03 + k * 5 + t * 0.05);
+        const top = Math.max(0, Math.floor(base - height * 1.4)), bot = Math.min(rows - 1, Math.ceil(base + 2));
         for (let r = top; r <= bot; r++) {
           const dy = r - base;
-          const inten = (dy < 0 ? Math.exp(dy / (8 + 8 * rays)) : Math.exp(-dy * dy * 0.6)) * rays * amp;
-          if (inten < 0.07) continue;
+          const up = clamp(-dy / height, 0, 1.4);
+          const inten = (dy <= 0 ? Math.pow(Math.max(0, 1 - up / 1.4), 1.6) : Math.exp(-dy * dy * 1.3)) * amp;
+          if (inten < 0.09) continue;
           const i = r * cols + c;
-          const u = clamp(-dy / 22, 0, 1);
-          const cr = lerp(0.42, 0.62, u * u), cg = lerp(1.0, 0.5, u), cb = lerp(0.68, 1.0, u);
-          const gi = AUR[clamp(Math.round(inten * 6.5), 1, 6)];
-          if (gGl[i] === 0 || gA[i] < inten) put(i, gi, cr, cg, cb, clamp(inten * 1.15, 0, 1));
-          emit(i, cr * inten * 0.11, cg * inten * 0.11, cb * inten * 0.11);
+          const u = clamp(up, 0, 1);
+          const cr = lerp(0.4, 0.5, u), cg = lerp(0.98, 0.8, u), cb = lerp(0.64, 0.78, u);
+          const gi = inten > 0.62 ? G_PIPE : inten > 0.4 ? G_COLON : inten > 0.22 ? G_APOS : G_DOT;
+          if (gGl[i] === 0 || gA[i] < inten) put(i, gi, cr, cg, cb, clamp(0.25 + inten * 0.9, 0, 1));
+          emit(i, cr * inten * 0.2, cg * inten * 0.2, cb * inten * 0.2);
+          if (inten > 0.2) stats.auroraCells++;
         }
       }
     }
@@ -1516,8 +1559,8 @@ function drawRange(par, seed, scale, body, edge, snowC, haze, f0) {
         [cr, cg, cb] = alt > snowLine ? snowC : edge;
       } else {
         const b = 0.5 + 0.38 * lit - depth * 0.012 + (hh - 0.5) * 0.34;
-        gi = b > 0.74 ? G_COLON : b > 0.5 ? G_DOT : b > 0.32 ? G_APOS : (hh < 0.3 ? G_COMMA : 0);
-        if (alt > snowLine - hh * 2 && depth < 6) { [cr, cg, cb] = snowC; gi = b > 0.55 ? G_COLON : b > 0.3 ? G_DOT : G_APOS; }
+        gi = b > 0.55 ? G_DOT : 0;
+        if (alt > snowLine - hh * 2 && depth < 6) { [cr, cg, cb] = snowC; gi = b > 0.4 ? G_DOT : 0; }
         else [cr, cg, cb] = body;
         cr *= 0.85 + lit * 0.2; cg *= 0.85 + lit * 0.2; cb *= 0.85 + lit * 0.2;
       }
@@ -1525,7 +1568,7 @@ function drawRange(par, seed, scale, body, edge, snowC, haze, f0) {
       cr = lerp(cr, sb[0], hz_); cg = lerp(cg, sb[1], hz_); cb = lerp(cb, sb[2], hz_);
       put(i, gi, cr, cg, cb, 1);
       const capT = alt > snowLine && depth < 6 ? 0.18 : 0;
-      back(i, lerp(sb[0], body[0] * 0.6 + capT, 0.55), lerp(sb[1], body[1] * 0.6 + capT, 0.55), lerp(sb[2], body[2] * 0.6 + capT, 0.55), 0.5);
+      back(i, lerp(sb[0], body[0] * 0.6 + capT, 0.55), lerp(sb[1], body[1] * 0.6 + capT, 0.55), lerp(sb[2], body[2] * 0.6 + capT, 0.55), 0.25);
     }
   }
 }
@@ -1564,7 +1607,7 @@ function drawForest(t) {
         const snowy = k > 0 && edge && c < c0 && hash2(c + off, r) < 0.55;
         const cr = snowy ? 0.62 : 0.2, cg = snowy ? 0.65 : 0.25, cb = snowy ? 0.7 : 0.25;
         put(i, gi, lerp(cr, sb[0], fogK), lerp(cg, sb[1], fogK), lerp(cb, sb[2], fogK), 1);
-        back(i, lerp(0.12, sb[0], fogK), lerp(0.14, sb[1], fogK), lerp(0.15, sb[2], fogK), 0.55);
+        back(i, lerp(0.12, sb[0], fogK), lerp(0.14, sb[1], fogK), lerp(0.15, sb[2], fogK), 0.25);
       }
     }
   }
@@ -1625,7 +1668,7 @@ function drawTown(t) {
         const shine = Math.pow(clamp(band, 0, 1), 6);
         const br = 0.92 + shine * 0.25;
         cr = lerp(0.95, 0.56, v) * br; cg = lerp(0.96, 0.6, v) * br; cb = lerp(0.985, 0.68, v) * br;
-        if (shine > 0.6 && gl_ === G_HASH) gl_ = G_AT;
+        if (shine > 0.6 && gl_ === G_HASH && cols >= 120) gl_ = G_AT;
         refl = 0.4;
       } else if (m !== 0) {
         gl_ = wGlyph[i];
@@ -1647,7 +1690,7 @@ function drawTown(t) {
           } else if (tag < TAG_SIGN) {
             const on = lampOn[tag - TAG_LAMP];
             gl_ = on > 0.5 ? G_O : G_o;
-            cr = lerp(0.45, 1.0, on); cg = lerp(0.48, 0.92, on); cb = lerp(0.52, 0.75, on);
+            cr = lerp(0.45, 1.0, on); cg = lerp(0.48, 0.74, on); cb = lerp(0.52, 0.4, on);
             emit(gi, 1.6 * on, 1.2 * on, 0.7 * on);
             emis = on > 0.1;
           } else if (tag < TAG_CLOCK) {
@@ -1661,18 +1704,21 @@ function drawTown(t) {
             const k = tag - TAG_CLOCK;
             gl_ = g(clockStr[k]);
             const on = 0.5 + 0.5 * sstep(0.1, 0.6, env.win);
-            cr = 0.72 * on; cg = 0.88 * on; cb = 1.0 * on;
-            emit(gi, 0.35 * on, 0.45 * on, 0.55 * on);
+            cr = 1.0 * on; cg = 0.86 * on; cb = 0.62 * on;
+            emit(gi, 0.5 * on, 0.4 * on, 0.25 * on);
             emis = true;
           }
         }
         // frost: surfaces with snow on them lighten a little
-        if (!emis && wSnow[i - WW] >= 0.45) { cr = lerp(cr, 0.85, 0.28); cg = lerp(cg, 0.88, 0.28); cb = lerp(cb, 0.93, 0.28); }
+        if (!emis) {
+          const sa = wSnow[i - WW];
+          if (sa >= 0.2) { const f = sa >= 0.6 ? 0.6 : 0.35; cr = lerp(cr, 0.88, f); cg = lerp(cg, 0.9, f); cb = lerp(cb, 0.95, f); }
+        }
         if (m === M_SNOWMAN && gl_ !== G_o && gl_ !== G_COLON) refl = 1;
       } else {
         // loose snow resting in an empty cell
         if (s < 1) {
-          gl_ = s < 0.34 ? G_DOT : s < 0.67 ? G_UND : G_LOW;
+          gl_ = s < 0.4 ? G_DOT : G_UND;
           cr = SNOW_TOP[0]; cg = SNOW_TOP[1]; cb = SNOW_TOP[2];
         } else {
           let depth = 0, up = i - WW;
@@ -1686,16 +1732,21 @@ function drawTown(t) {
         const h = hash2(wx, wy);
         const k = clamp(mass / 8, 0, 1);
         if (mass === 0) {
-          gl_ = G_UP; cr = SNOW_TOP[0] + 0.04; cg = SNOW_TOP[1] + 0.04; cb = SNOW_TOP[2] + 0.03;
-          if (hash2(wx, Math.floor(t * 1.4 + h * 37)) < 0.01) { gl_ = G_STAR; cr = cg = cb = 1.05; }
+          // rim: ‾ on flat tops, / and \ where the pile ends
+          const lOpen = wSolid[i - 1] === 0 && wSnow[i - 1] < 0.5;
+          const rOpen = wSolid[i + 1] === 0 && wSnow[i + 1] < 0.5;
+          gl_ = lOpen && rOpen ? G_CARET : lOpen ? G_SL : rOpen ? G_BS : G_OVER;
+          cr = SNOW_TOP[0] + 0.05; cg = SNOW_TOP[1] + 0.05; cb = SNOW_TOP[2] + 0.04;
+          if (hash2(wx, Math.floor(t * 1.4 + h * 37)) < 0.012) { gl_ = G_STAR; cr = cg = cb = 1.05; }
         } else {
-          gl_ = mass < 3 ? (h < 0.45 ? G_COLON : h < 0.75 ? G_DOT : G_APOS) : (h < 0.3 ? G_DOT : h < 0.4 ? G_APOS : 0);
-          cr = lerp(0.82, 0.5, k); cg = lerp(0.85, 0.54, k); cb = lerp(0.9, 0.62, k);
+          gl_ = mass < 3 ? (h < 0.5 ? G_COLON : h < 0.8 ? G_DOT : h < 0.9 ? G_APOS : G_COMMA)
+                         : (h < 0.45 ? G_DOT : h < 0.62 ? G_APOS : h < 0.75 ? G_COMMA : 0);
+          cr = lerp(0.86, 0.52, k); cg = lerp(0.89, 0.56, k); cb = lerp(0.94, 0.64, k);
         }
-        let br = lerp(0.6, 0.27, k), bgc = lerp(0.63, 0.29, k), bb = lerp(0.69, 0.34, k);
+        let br = lerp(0.56, 0.3, k), bgc = lerp(0.59, 0.32, k), bb = lerp(0.65, 0.37, k);
         lightAt(c, r);
         br = br * amb[0] + lr * 0.55; bgc = bgc * amb[1] + lg * 0.55; bb = bb * amb[2] + lb * 0.55;
-        back(gi, br, bgc, bb, lerp(0.62, 0.42, k));
+        back(gi, br, bgc, bb, lerp(0.34, 0.2, k));
         cr = cr * amb[0] + lr * (0.25 + 0.75 * cr);
         cg = cg * amb[1] + lg * (0.25 + 0.75 * cg);
         cb = cb * amb[2] + lb * (0.25 + 0.75 * cb);
@@ -1730,8 +1781,18 @@ function drawLampCones() {
       for (let c = Math.max(0, Math.floor(lx - hw)); c <= Math.min(cols - 1, Math.ceil(lx + hw)); c++) {
         const u = Math.abs(c - lx) / hw;
         if (u >= 1) continue;
-        const f = on * (1 - u * u) * (0.055 + 0.05 * (1 - dy / 12));
+        const f = on * (1 - u * u) * (0.12 + 0.09 * (1 - dy / 12));
         emit(r * cols + c, f, f * 0.74, f * 0.42);
+      }
+    }
+    // warm pool on the snow under the lamp
+    for (let r = ground - 2; r <= ground + 1; r++) {
+      if (r < 0 || r >= rows) continue;
+      for (let c = Math.max(0, Math.floor(lx - 7)); c <= Math.min(cols - 1, Math.ceil(lx + 7)); c++) {
+        const u = Math.abs(c - lx) / 7.5;
+        if (u >= 1) continue;
+        const f = on * 0.22 * (1 - u * u);
+        emit(r * cols + c, f, f * 0.72, f * 0.4);
       }
     }
   }
@@ -1777,13 +1838,15 @@ function drawSprites(t) {
     const dir = Math.cos(ph) >= 0 ? 1 : -1;
     const step = Math.floor(t * 2.5) & 1;
     const fy = ICEY - 1;
-    const coat = [0.32 * amb[0], 0.34 * amb[1], 0.4 * amb[2]], skin = [0.82, 0.74, 0.66], scarf = [0.95, 0.66, 0.34];
-    plotWorld(x, fy - 2, G_o, skin[0], skin[1], skin[2], 1);
-    plotWorld(x - dir, fy - 1, dir > 0 ? G_LT : G_GT, coat[0], coat[1], coat[2], 1);
-    plotWorld(x, fy - 1, G_PIPE, scarf[0], scarf[1], scarf[2], 1);
-    plotWorld(x + dir, fy - 1, dir > 0 ? G_BS : G_SL, coat[0], coat[1], coat[2], 1);
-    plotWorld(x - 1, fy, step ? G_SL : G_UND, coat[0], coat[1], coat[2], 1);
-    plotWorld(x + 1, fy, step ? G_UND : G_BS, coat[0], coat[1], coat[2], 1);
+    const coat = [0.55 * amb[0], 0.56 * amb[1], 0.6 * amb[2]], skin = [0.86, 0.78, 0.7], scarf = [1.0, 0.7, 0.36];
+    plotWorld(x, fy - 3, G_o, skin[0], skin[1], skin[2], 1);
+    plotWorld(x - 1, fy - 2, G_DASH, coat[0], coat[1], coat[2], 1);
+    plotWorld(x, fy - 2, G_PIPE, scarf[0], scarf[1], scarf[2], 1);
+    plotWorld(x + 1, fy - 2, G_DASH, coat[0], coat[1], coat[2], 1);
+    plotWorld(x - 1, fy - 1, step ? G_SL : G_PIPE, coat[0], coat[1], coat[2], 1);
+    plotWorld(x + 1, fy - 1, step ? G_PIPE : G_BS, coat[0], coat[1], coat[2], 1);
+    plotWorld(x - 1 - (dir > 0 ? 1 : 0), fy, G_UND, 0.8, 0.84, 0.9, 1);
+    plotWorld(x + 1 + (dir < 0 ? 1 : 0), fy, G_UND, 0.8, 0.84, 0.9, 1);
   }
   // two people watching the sky on the hill
   if (watchers && watchers.x - camXi > -20 && watchers.x - camXi < cols + 20) {
@@ -1831,8 +1894,8 @@ function drawParticles(layer, t) {
     if (k === K_SMOKE) {
       const a = plife[i] / pmax[i];
       const hs = pseed[i] % 1;
-      const gl_ = a < 0.12 ? G_o : a < 0.4 ? (hs < 0.5 ? G_TIL : G_o) : a < 0.7 ? (hs < 0.6 ? G_TIL : G_DASH) : (hs < 0.5 ? G_DOT : G_APOS);
-      const al = (1 - a) * 0.7;
+      const gl_ = a < 0.45 ? (hs < 0.75 ? G_TIL : G_DASH) : a < 0.75 ? (hs < 0.5 ? G_TIL : G_DASH) : (hs < 0.5 ? G_DOT : G_APOS);
+      const al = (1 - a) * 0.5;
       put(gi, gl_, lerp(0.66, sb[0] + 0.1, a), lerp(0.63, sb[1] + 0.1, a), lerp(0.6, sb[2] + 0.1, a), al);
       continue;
     }
@@ -1842,14 +1905,14 @@ function drawParticles(layer, t) {
     if (layer === 0) {
       gl_ = G_DOT; cr = 0.7; cg = 0.73; cb = 0.8; a = 0.55;
     } else {
-      if (k === K_CHUNK) gl_ = G_PCT;
+      if (k === K_CHUNK) gl_ = pa[i] > 0.6 ? G_O : pa[i] > 0.3 ? G_o : G_STAR;
       else if (sp2 > (layer === 2 ? 70 : 55) && (pseed[i] % 1) < 0.7) {
         const ang = Math.atan2(vy, vx) * 180 / Math.PI;
         gl_ = (ang > 72 && ang < 108) ? G_PIPE : (ang >= 38 && ang <= 72) ? G_BS : (ang >= 108 && ang <= 142) ? G_SL : G_DASH;
       } else gl_ = layer === 2 ? G_STAR : (pm[i] > 1.05 ? G_STAR : G_PLUS);
       cr = 0.9; cg = 0.92; cb = 0.96; a = layer === 2 ? 1 : 0.9;
       lightAt(c, r);
-      cr = cr * amb[0] + lr * 0.95; cg = cg * amb[1] + lg * 0.95; cb = cb * amb[2] + lb * 0.95;
+      cr = cr * amb[0] + lr * 1.6; cg = cg * amb[1] + lg * 1.6; cb = cb * amb[2] + lb * 1.6;
       if (layer === 2 && sp2 > 60) {
         const tc = Math.floor(px[i] - vx * ASPECT * 0.035 - camX * PAR[layer]), tr = Math.floor(py[i] - vy * 0.035 - camY * PARY[layer]);
         if (tc >= 0 && tc < cols && tr >= 0 && tr < rows && (tc !== c || tr !== r)) put(tr * cols + tc, gl_, cr, cg, cb, 0.45);
@@ -1944,12 +2007,12 @@ function drawPanels() {
           const r = fr0 - 1 - j;
           if (r < 0 || r >= rows) continue;
           const i = r * cols + c;
-          const topCell = j === full - 1 && frac < 0.5;
-          put(i, topCell ? G_UP : (hash2(c, j) < 0.5 ? G_COLON : G_DOT), 0.9 * env.amb[0], 0.92 * env.amb[1], 0.96 * env.amb[2], 1);
-          back(i, 0.58 * env.amb[0], 0.61 * env.amb[1], 0.67 * env.amb[2], 0.6);
+          const topCell = j === full - 1 && frac < 0.4;
+          put(i, topCell ? G_OVER : (hash2(c, j) < 0.55 ? G_COLON : G_DOT), 0.9 * env.amb[0], 0.92 * env.amb[1], 0.96 * env.amb[2], 1);
+          back(i, 0.56 * env.amb[0], 0.59 * env.amb[1], 0.65 * env.amb[2], 0.25);
         }
         const r = fr0 - 1 - full;
-        if (frac > 0.08 && r >= 0 && r < rows) put(r * cols + c, frac < 0.4 ? G_DOT : frac < 0.75 ? G_UND : G_LOW, 0.9 * env.amb[0], 0.92 * env.amb[1], 0.96 * env.amb[2], 1);
+        if (frac > 0.08 && r >= 0 && r < rows) put(r * cols + c, frac < 0.4 ? G_DOT : G_UND, 0.9 * env.amb[0], 0.92 * env.amb[1], 0.96 * env.amb[2], 1);
       }
     }
   }
@@ -1958,7 +2021,7 @@ function drawPanels() {
 function drawRings(t) {
   for (let k = rings.length - 1; k >= 0; k--) {
     const R = rings[k];
-    const u = (t - R.t0) / 0.55;
+    const u = (t - R.t0) / 0.9;
     if (u > 1) { rings.splice(k, 1); continue; }
     const rad = 1 + u * 11;
     const n = Math.ceil(rad * 7);
@@ -1966,7 +2029,7 @@ function drawRings(t) {
       const ang = j / n * Math.PI * 2;
       const c = Math.round(R.c + Math.cos(ang) * rad * ASPECT), r = Math.round(R.r + Math.sin(ang) * rad);
       if (c < 0 || c >= cols || r < 0 || r >= rows) continue;
-      put(r * cols + c, u < 0.4 ? G_o : G_DOT, 0.95, 0.96, 1, 1 - u);
+      put(r * cols + c, u < 0.6 ? G_o : G_DOT, 0.95, 0.96, 1, 1 - u);
     }
   }
 }
@@ -2022,8 +2085,8 @@ function composite(t, dt) {
   gGl.fill(0); bA.fill(0); Lr.fill(0); Lg.fill(0); Lb.fill(0);
   buildLights(t);
   drawSky(t);
-  drawRange(0.07, 2, rows * 0.5, [0.36, 0.39, 0.44], [0.56, 0.6, 0.66], [0.78, 0.81, 0.86], 0.5, 0.017);
-  drawRange(0.15, 7, rows * 0.38, [0.25, 0.28, 0.32], [0.46, 0.5, 0.55], [0.86, 0.88, 0.92], 0.22, 0.024);
+  drawRange(0.07, 2, rows * 0.5, [0.36, 0.39, 0.44], [0.56, 0.6, 0.66], [0.78, 0.81, 0.86], 0.5, 0.009);
+  drawRange(0.15, 7, rows * 0.22, [0.25, 0.28, 0.32], [0.46, 0.5, 0.55], [0.86, 0.88, 0.92], 0.45, 0.011);
   drawForest(t);
   drawFog(t);
   drawParticles(0, t);
@@ -2121,6 +2184,8 @@ function frame(now) {
   updateEnv(scrollSm);
   updateCamera();
   updateTitle();
+  const op = clamp(1 - env.dissolve * 1.5, 0, 1).toFixed(2);
+  if (heroCopy.style.opacity !== op) heroCopy.style.opacity = op;
   acc += dt;
   let ticks = 0;
   while (acc >= 1 / 30 && ticks < 3) { snowTick(); acc -= 1 / 30; ticks++; }
@@ -2145,6 +2210,9 @@ function frame(now) {
    ========================================================= */
 let hudNext = 0, lastChapter = -1;
 const fmt = n => Math.round(n).toLocaleString('ru-RU');
+function plural(n, f) { n = Math.abs(Math.round(n)); const a = n % 100, b = n % 10; return a > 10 && a < 20 ? f[2] : b === 1 ? f[0] : b > 1 && b < 5 ? f[1] : f[2]; }
+const W_SYM = ['символ', 'символа', 'символов'], W_PART = ['частица', 'частицы', 'частиц'], W_CELL = ['клетка', 'клетки', 'клеток'], W_FLAKE = ['снежинка', 'снежинки', 'снежинок'];
+const nw = (n, f) => fmt(n) + ' ' + plural(n, f);
 const setLive = (k, v) => { const a = liveEls[k]; if (a) for (const el of a) if (el.textContent !== v) el.textContent = v; };
 const CHAP_NAMES = sections.map(s => s.dataset.name);
 function windGauge(w) {
@@ -2161,23 +2229,24 @@ function updateHud(t) {
   if (t < hudNext) return;
   hudNext = t + 0.25;
   const flakes = layerCount[0] + layerCount[1] + layerCount[2];
-  setLive('cells', fmt(cols * rows));
-  setLive('flakes', fmt(flakes) + ' частиц');
-  setLive('flakes2', fmt(flakes) + ' частиц');
-  setLive('fall', stats.fallN ? (stats.fallSum / stats.fallN).toFixed(1).replace('.', ',') + ' клет/с' : '—');
+  setLive('cells', nw(cols * rows, W_SYM));
+  setLive('flakes', nw(flakes, W_PART));
+  setLive('flakes2', nw(flakes, W_PART));
+  setLive('fall', stats.fallN ? (stats.fallSum / stats.fallN).toFixed(1).replace('.', ',') + ' кл/с' : '—');
   setLive('layers', `${fmt(layerCount[0])} · ${fmt(layerCount[1])} · ${fmt(layerCount[2])}`);
-  setLive('settled', fmt(stats.settled) + ' клеток');
+  setLive('settled', nw(stats.settled, W_CELL));
   setLive('slides', fmt(stats.slides));
   const wtxt = `${stats.lit} из ${stats.litTotal}`;
   setLive('windows', wtxt); setLive('windows2', wtxt);
-  setLive('wind', windGauge(windNow) + '  ' + Math.abs(windNow).toFixed(1).replace('.', ',') + ' клет/с');
+  setLive('wind', windGauge(windNow) + '  ' + Math.abs(windNow).toFixed(1).replace('.', ',') + ' кл/с');
   setLive('gust', '×' + gustNow.toFixed(2).replace('.', ','));
-  setLive('lifted', fmt(stats.lifted) + ' клеток');
+  setLive('lifted', nw(stats.lifted, W_CELL));
+  setLive('drifted', nw(stats.drifted, W_FLAKE));
   setLive('lamps', `${stats.lampsOn} из ${lamps.length}`);
   setLive('clock', clockText(t).replace(' ', ':'));
   setLive('mirror', String(stats.mirror));
-  setLive('aurora', Math.round(env.aurora * 100) + ' %');
-  setLive('perf', `${fmt(cols * rows)} символов · ${fmt(pn)} частиц · кадр ${stats.frameMs.toFixed(1).replace('.', ',')} мс`);
+  setLive('aurora', nw(stats.auroraCells, W_CELL));
+  setLive('perf', `${nw(cols * rows, W_SYM)} · ${nw(pn, W_PART)} · кадр ${stats.frameMs.toFixed(1).replace('.', ',')} мс`);
 }
 
 const SCR = '#%@*+=-:./\\|';
